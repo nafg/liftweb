@@ -83,7 +83,7 @@ class PasswordField[OwnerType <: Record[OwnerType]](rec: OwnerType) extends Fiel
     }
 
   }
-
+  
   def asXHtml: NodeSeq = {
     var el = elem
 
@@ -93,11 +93,14 @@ class PasswordField[OwnerType <: Record[OwnerType]](rec: OwnerType) extends Fiel
     }
   }
 
-  private def validatePassword(pwdBox: Box[String]): Box[Node] = pwdBox.flatMap(pwd => pwd match {
-    case "*" | PasswordField.blankPw if (pwd.length < 3) => Full(Text(S.??("password.too.short")))
-    case "" | null => Full(Text(S.??("password.must.be.set")))
-    case _ => Empty
-  })
+  private def validatePassword(pwdBox: Box[String]): List[FieldError] = pwdBox match {
+    case Full(pwd) => pwd match {
+        case "*" | PasswordField.blankPw if (pwd.length < 3) => List(FieldError(this, Text(S.??("password.too.short"))))
+        case "" | null => List(FieldError(this, Text(S.??("password.must.be.set"))))
+        case _ => Nil
+      }
+    case _ => List(FieldError(this, Text(S.??("password.must.be.set"))))
+  }
 
   override def validators = validatePassword _ :: Nil
 

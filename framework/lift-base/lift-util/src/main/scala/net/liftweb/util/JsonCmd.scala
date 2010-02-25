@@ -18,7 +18,8 @@ package net.liftweb {
 package util {
 
 import common._
-import xml.NodeSeq
+import scala.xml.{NodeSeq, Text}
+import java.util.regex.Pattern
 
 trait HasParams {
   def param(name: String): Box[String]
@@ -49,6 +50,121 @@ class ResponseInfoHolder {
   def overrodeDocType = _setDocType
 }
 
+trait HasMaxLen {
+  def maxLen: Int
+}
+
+trait StringFieldHelpers {
+  self: FieldIdentifier with HasMaxLen =>
+
+  final def crop(in: String): String = in.substring(0, Math.min(in.length, maxLen))
+
+  final def removeRegExChars(regEx: String)(in: String): String = in.replaceAll(regEx, "")
+
+  final def toLower(in: String): String = in match {
+    case null => null
+    case s => s.toLowerCase
+  }
+  final def toUpper(in: String): String = in match {
+    case null => null
+    case s => s.toUpperCase
+  }
+
+  final def trim(in: String): String = in match {
+    case null => null
+    case s => s.trim
+  }
+
+  final def notNull(in: String): String = in match {
+    case null => ""
+    case s => s
+  }
+
+
+  /**
+   * A validation helper.  Make sure the string is at least a particular
+   * length and generate a validation issue if not
+   */
+  def valMinLen(len: Int, msg: => String)(value: String): List[FieldError] =
+  if ((value eq null) || value.length < len) List(FieldError(this, Text(msg)))
+  else Nil
+
+  /**
+   * A validation helper.  Make sure the string is no more than a particular
+   * length and generate a validation issue if not
+   */
+  def valMaxLen(len: Int, msg: => String)(value: String): List[FieldError] =
+  if ((value ne null) && value.length > len) List(FieldError(this, Text(msg)))
+  else Nil
+
+  /**
+   * Make sure the field matches a regular expression
+   */
+  def valRegex(pat: Pattern, msg: => String)(value: String): List[FieldError] = pat.matcher(value).matches match {
+    case true => Nil
+    case false => List(FieldError(this, Text(msg)))
+  }
+
+  final def cropb(in: Box[String]): Box[String] = in.map(in => in.substring(0, Math.min(in.length, maxLen)))
+
+  final def removeRegExCharsb(regEx: String)(in: Box[String]): Box[String] = in.map(_.replaceAll(regEx, ""))
+
+  final def toLowerb(in: Box[String]): Box[String] = in.map {
+    case null => null
+    case s => s.toLowerCase
+  }
+
+  final def toUpperb(in: Box[String]): Box[String] = in map {
+    case null => null
+    case s => s.toUpperCase
+  }
+
+  final def trimb(in: Box[String]): Box[String] = in map {
+    case null => null
+    case s => s.trim
+  }
+
+  final def notNullb(in: Box[String]): Box[String] = in match {
+    case Full(x) if null eq x => Full("")
+    case Full(x) => Full(x)
+    case _ => Full("")
+  }
+
+
+  /**
+   * A validation helper.  Make sure the string is at least a particular
+   * length and generate a validation issue if not
+   */
+  def valbMinLen(len: Int, msg: => String)(value: Box[String]): List[FieldError] =
+  value match {
+    case Full(value) => if ((value eq null) || value.length < len) List(FieldError(this, Text(msg))) else Nil
+    case _ => List(FieldError(this, Text(msg)))
+  }
+
+  /**
+   * A validation helper.  Make sure the string is no more than a particular
+   * length and generate a validation issue if not
+   */
+  def valbMaxLen(len: Int, msg: => String)(value: Box[String]): List[FieldError] =
+  for {
+    v <- value.toList
+    ret <-  if ((v ne null) && v.length > len) List(FieldError(this, Text(msg))) else Nil
+  } yield ret
+
+
+  /**
+   * Make sure the field matches a regular expression
+   */
+  def valbRegex(pat: Pattern, msg: => String)(value: Box[String]): List[FieldError] = value match {
+    case Full(value) =>
+      pat.matcher(value).matches match {
+        case true => Nil
+        case false => List(FieldError(this, Text(msg)))
+      }
+    case _ => List(FieldError(this, Text(msg)))
+  }
+}
+
 /**
  * Defines the association of this reference with an markup tag ID
  */
@@ -61,6 +177,12 @@ trait FieldIdentifier {
  */
 case class FieldError(field: FieldIdentifier, msg: NodeSeq) {
   override def toString = field.uniqueFieldId + " : " + msg
+
+  override def hashCode(): Int = msg.hashCode + field.uniqueFieldId.hashCode
+  override def equals(other: Any): Boolean = other match {
+    case FieldError(of, om) => (om == msg) && (of.uniqueFieldId == field.uniqueFieldId)
+    case _ => super.equals(other)
+  }
 }
 
 object FieldError {

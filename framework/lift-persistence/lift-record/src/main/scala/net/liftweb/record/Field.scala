@@ -30,7 +30,7 @@ trait OwnedField[OwnerType <: Record[OwnerType]] extends FieldIdentifier {
   private[record] var fieldName: String = _
 
   type MyType
-  type ValidationFunction = Box[MyType] => Box[Node]
+  type ValidationFunction = Box[MyType] => List[FieldError]
 
   /**
    * Return the owner of this field

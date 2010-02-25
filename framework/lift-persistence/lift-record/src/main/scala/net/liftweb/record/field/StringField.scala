@@ -31,7 +31,7 @@ import JE._
 /**
  * A Field containing String content.
  */
-class StringField[OwnerType <: Record[OwnerType]](rec: OwnerType, maxLength: Int) extends Field[String, OwnerType] {
+class StringField[OwnerType <: Record[OwnerType]](val rec: OwnerType,val maxLen: Int) extends Field[String, OwnerType]  with HasMaxLen with StringFieldHelpers  {
 
   def this(rec: OwnerType, maxLength: Int, value: String) = {
     this(rec, maxLength)
@@ -67,7 +67,7 @@ class StringField[OwnerType <: Record[OwnerType]](rec: OwnerType, maxLength: Int
 
   private def elem = S.fmapFunc(SFuncHolder(this.setFromAny(_))) {
     funcName =>
-    <input type="text" maxlength={maxLength.toString}
+    <input type="text" maxlength={maxLen.toString}
       name={funcName}
       value={valueBox openOr ""}
       tabindex={tabIndex toString}/>
@@ -91,25 +91,7 @@ class StringField[OwnerType <: Record[OwnerType]](rec: OwnerType, maxLength: Int
     }
   }
 
-
   def defaultValue = ""
-
-  /**
-   * Make sure the field matches a regular expression
-   */
-  def valRegex(pat: Pattern, msg: => String)(valueBox: Box[String]): Box[Node] =
-    valueBox flatMap {
-      s => pat.matcher(s).matches match {
-        case true => Empty
-        case false => Full(Text(msg))
-      }
-    }
-
-  final def toUpper(in: Box[String]): Box[String] = in.map(_.toUpperCase)
-
-  final def trim(in: Box[String]): Box[String] = in.map(_.trim)
-
-  final def notNull(in: Box[String]): Box[String] = in or Full("")
 
   def asJs = valueBox.map(Str) openOr JsNull
 
