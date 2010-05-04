@@ -18,7 +18,7 @@ package net.liftweb {
 package json {
 
 import java.util.{Date, TimeZone}
-import JsonAST.JObject
+import JsonAST.{JObject, JValue}
 
 /** Formats to use when converting JSON.
  * Formats are usually configured by using an implicit parameter:
@@ -26,18 +26,32 @@ import JsonAST.JObject
  * implicit val formats = net.liftweb.json.DefaultFormats
  * </pre>
  */
-trait Formats {
-  self: Formats =>
-    val dateFormat: DateFormat
-    val typeHints: TypeHints = NoTypeHints
+trait Formats { self: Formats =>
+  val dateFormat: DateFormat
+  val typeHints: TypeHints = NoTypeHints
+  val customSerializers: List[Serializer] = Nil
   
-    /**
-     * Adds the specified type hints to this formats.
-     */
-    def + (extraHints: TypeHints): Formats = new Formats {
-      val dateFormat = Formats.this.dateFormat
-    
-      override val typeHints = self.typeHints + extraHints
+  /**
+   * Adds the specified type hints to this formats.
+   */
+  def + (extraHints: TypeHints): Formats = new Formats {
+    val dateFormat = Formats.this.dateFormat
+    override val typeHints = self.typeHints + extraHints
+    override val customSerializers = self.customSerializers
+  }
+
+  /**
+   * Adds the specified custom serializer to this formats.
+   */
+  def + (newSerializer: Serializer): Formats = new Formats {
+    val dateFormat = Formats.this.dateFormat
+    override val typeHints = self.typeHints
+    override val customSerializers = newSerializer :: self.customSerializers
+  }
+
+  def customSerializer(implicit format: Formats) = 
+    customSerializers.foldLeft(Map(): PartialFunction[Any, JValue]) { (acc, x) => 
+      acc.orElse(x.serialize) 
     }
 }
 
@@ -46,6 +60,14 @@ trait Formats {
 trait DateFormat {
   def parse(s: String): Option[Date]
   def format(d: Date): String
+}
+
+// FIXME is PF good choice?
+trait Serializer {
+// FIXME remove this
+//  def canHandle_?(x: Class[_]): Boolean 
+  def deserialize: PartialFunction[JValue, Any]
+  def serialize(implicit format: Formats): PartialFunction[Any, JValue]
 }
 
 /** Type hints can be used to alter the default conversion rules when converting

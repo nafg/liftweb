@@ -67,7 +67,9 @@ object Extraction {
  
     val serializer = formats.typeHints.serialize
     val any = a.asInstanceOf[AnyRef]
-    if (!serializer.isDefinedAt(a)) {
+    if (formats.customSerializer(formats).isDefinedAt(a)) {
+      formats.customSerializer(formats)(a)
+    } else if (!serializer.isDefinedAt(a)) {
       any match {
         case null => JNull
         case x if primitive_?(x.getClass) => primitive2jvalue(x)(formats)
