@@ -217,6 +217,14 @@
       <id>nuttycombe</id>
       <name>Kris Nuttycombe</name>
     </developer>
+    <developer>
+      <id>jstrachan</id>
+      <name>James Strachan</name>
+    </developer>
+    <developer>
+      <id>eltimn</id>
+      <name>Tim Nelson</name>
+    </developer>
   </developers>
   <mailingLists>
     <mailingList>
