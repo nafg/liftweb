@@ -193,7 +193,9 @@ object Extraction {
         } else deserializer(typeHint, obj)
       }
 
-      json match {
+      val custom = formats.customDeserializer(formats)
+      if (custom.isDefinedAt(targetType, json)) custom(targetType, json)
+      else json match {
         case JObject(JField("jsonClass", JString(t)) :: xs) => mkWithTypeHint(t, xs)
         case JField(_, JObject(JField("jsonClass", JString(t)) :: xs)) => mkWithTypeHint(t, xs)
         case _ => instantiate(primaryConstructorOf(targetType), args.map(a => build(json \ a.path, a)))
