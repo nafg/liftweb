@@ -56,7 +56,7 @@ trait Formats { self: Formats =>
 
   // FIXME cleanup
   def customDeserializer(implicit format: Formats) = 
-    customSerializers.foldLeft(Map(): PartialFunction[(Class[_], JValue), Any]) { (acc, x) => 
+    customSerializers.foldLeft(Map(): PartialFunction[(TypeInfo, JValue), Any]) { (acc, x) => 
       acc.orElse(x.deserialize) 
     }
 }
@@ -71,7 +71,7 @@ trait DateFormat {
 // FIXME is PF good choice?
 // FIXME types?
 trait Serializer {
-  def deserialize(implicit format: Formats): PartialFunction[(Class[_], JValue), Any]
+  def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), Any]
   def serialize(implicit format: Formats): PartialFunction[Any, JValue]
 }
 

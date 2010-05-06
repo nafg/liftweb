@@ -31,6 +31,10 @@ object JsonTypesSpec extends Specification {
     parse("""{"name":"joe"}""").extract[Person] mustEqual Person("joe", Empty)
   }
 
+  "Extract boxed age" in {
+    parse("""{"name":"joe", "age":12}""").extract[Person] mustEqual Person("joe", Full(12))
+  }
+
   "Render with age" in {
     swrite(Person("joe", Full(12))) mustEqual """{"name":"joe","age":12}"""
   }

@@ -17,9 +17,11 @@
 package net.liftweb {
 package json {
 
-import java.lang.reflect.{Constructor => JConstructor, Field, Type}
+import java.lang.reflect.{Constructor => JConstructor, Field, Type, ParameterizedType}
 import java.util.Date
 import JsonAST._
+
+case class TypeInfo(clazz: Class[_], parameterizedType: Option[ParameterizedType])
 
 private[json] object Meta {
   import com.thoughtworks.paranamer._
@@ -44,7 +46,7 @@ private[json] object Meta {
   sealed abstract class Mapping
   case class Arg(path: String, mapping: Mapping) extends Mapping
   case class Value(targetType: Class[_]) extends Mapping
-  case class Constructor(targetType: Class[_], args: List[Arg]) extends Mapping
+  case class Constructor(targetType: TypeInfo, args: List[Arg]) extends Mapping
   case class Cycle(targetType: Class[_]) extends Mapping
   case class Dict(mapping: Mapping) extends Mapping
   case class Col(targetType: Class[_], mapping: Mapping) extends Mapping
@@ -68,6 +70,11 @@ private[json] object Meta {
           val types = typeConstructors(t, k)(valueTypeIndex)
           factory(fieldMapping(types._1, types._2))
         } else factory(fieldMapping(typeParameters(t, k)(valueTypeIndex), null))
+
+      def parameterizedTypeOpt(t: Type) = t match {
+        case x: ParameterizedType => Some(x)
+        case _ => None
+      }
         
       def fieldMapping(fType: Class[_], genType: Type): Mapping = {
         if (primitive_?(fType)) Value(fType)
@@ -83,7 +90,8 @@ private[json] object Meta {
           mkContainer(genType, `(*,*) -> *`, 1, Dict.apply _)
         else {
           if (visited.contains(fType)) Cycle(fType)
-          else Constructor(fType, constructorArgs(fType, visited + fType))
+          else Constructor(TypeInfo(fType, parameterizedTypeOpt(genType)), 
+                           constructorArgs(fType, visited + fType))
         }
       }
      
@@ -91,7 +99,7 @@ private[json] object Meta {
     }
 
     if (primitive_?(clazz)) Value(clazz)    
-    else mappings.memoize(clazz, c => Constructor(c, constructorArgs(c, Set())))
+    else mappings.memoize(clazz, c => Constructor(TypeInfo(c, None), constructorArgs(c, Set())))
   }
 
   private[json] def unmangleName(f: Field) = 

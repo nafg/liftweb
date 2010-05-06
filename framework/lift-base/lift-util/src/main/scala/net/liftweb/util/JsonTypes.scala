@@ -20,12 +20,15 @@ package util {
 import scala.reflect.Manifest
 import common._
 import json.Extraction.{decompose, extract}
-import json.{Formats, Serializer}
+import json.{Formats, TypeInfo, Serializer}
 import json.JsonAST._
 
 class JsonBoxSerializer extends Serializer {
-  def deserialize(implicit format: Formats): PartialFunction[(Class[_], JValue), Any] = {
-    case (_: Box[_], json) => json match {
+  private val BoxClass = classOf[Box[_]]
+  import scala.collection.jcl.Conversions._
+
+  def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), Any] = {
+    case (TypeInfo(BoxClass, Some(ptype)), json) => json match {
       case JNull | JNothing => Empty
       case JObject(JField("$box_failure", JString("Failure")) :: 
                    JField("msg", JString(msg)) :: 
@@ -36,7 +39,7 @@ class JsonBoxSerializer extends Serializer {
                    JField("exception", JArray(exceptions)) ::
                    JField("chain", JArray(chain)) :: 
                    JField("param", param) :: Nil) => ParamFailure(msg, null)
-      case x => Full(extract(x))
+      case x => error(">>>>>>>>>>>>>> " + ptype.getActualTypeArguments.mkString(",")) //Full(extract(x))
     }
   }
 

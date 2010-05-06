@@ -170,7 +170,7 @@ object Extraction {
 
     val mapping = mappingOf(mf.erasure)
 
-    def newInstance(targetType: Class[_], args: List[Arg], json: JValue) = {
+    def newInstance(targetType: TypeInfo, args: List[Arg], json: JValue) = {
       def instantiate(constructor: JConstructor[_], args: List[Any]) = 
         try {
           if (constructor.getDeclaringClass == classOf[java.lang.Object]) fail("No information known about type")
@@ -198,7 +198,7 @@ object Extraction {
       else json match {
         case JObject(JField("jsonClass", JString(t)) :: xs) => mkWithTypeHint(t, xs)
         case JField(_, JObject(JField("jsonClass", JString(t)) :: xs)) => mkWithTypeHint(t, xs)
-        case _ => instantiate(primaryConstructorOf(targetType), args.map(a => build(json \ a.path, a)))
+        case _ => instantiate(primaryConstructorOf(targetType.clazz), args.map(a => build(json \ a.path, a)))
       }
     }
 
