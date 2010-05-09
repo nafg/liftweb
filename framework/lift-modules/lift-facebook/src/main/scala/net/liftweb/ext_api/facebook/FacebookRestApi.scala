@@ -25,6 +25,8 @@ import _root_.java.util.Date
 
 import _root_.scala.xml.{Node, XML, NodeSeq}
 
+import _root_.net.liftweb.util.Helpers._
+
 object FacebookRestApi {
   def apiKey = System.getProperty("com.facebook.api_key")
   def secret = System.getProperty("com.facebook.secret")
@@ -34,7 +36,10 @@ object FacebookRestApi {
 
 object FacebookClient {
   import FacebookRestApi._
-
+  
+  var readTimeout = 10.seconds
+  var connectTimeout = 10.seconds
+  
   val TARGET_API_VERSION = "1.0"
   val FB_SERVER = "api.facebook.com/restserver.php"
   val SERVER_ADDR = "http://" + FB_SERVER
@@ -66,11 +71,14 @@ object FacebookClient {
 
     SERVER_URL.openConnection match {
       case conn: HttpURLConnection => {
+        conn.setReadTimeout(readTimeout.millis.toInt)
+        conn.setConnectTimeout(connectTimeout.millis.toInt)
+        
         conn.setRequestMethod("POST") // [ticket #27]
         conn.setDoOutput(true)
         conn.connect
         conn.getOutputStream.write(theParams.getBytes())
-
+        
         parser(conn.getInputStream())
       }
     }
@@ -135,6 +143,9 @@ class FacebookClient[T](val apiKey: String, val secret: String, val session: Fac
     val boundary = System.currentTimeMillis.toString
     SERVER_URL.openConnection match {
       case conn: HttpURLConnection => {
+        conn.setReadTimeout(readTimeout.millis.toInt)
+        conn.setConnectTimeout(connectTimeout.millis.toInt)
+        
         conn.setDoInput(true)
         conn.setDoOutput(true)
         conn.setUseCaches(false)
@@ -161,7 +172,7 @@ class FacebookClient[T](val apiKey: String, val secret: String, val session: Fac
 
         out.flush()
         out.close()
-
+        
         parser(conn.getInputStream)
       }
     }
