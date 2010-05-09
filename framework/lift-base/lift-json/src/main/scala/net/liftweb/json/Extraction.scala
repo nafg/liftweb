@@ -37,7 +37,7 @@ object Extraction {
    */
   def extract[A](json: JValue)(implicit formats: Formats, mf: Manifest[A]): A = 
     try {
-      extract0(json, formats, mf)
+      extract0(json, mf)
     } catch {
       case e: MappingException => throw e
       case e: Exception => throw new MappingException("unknown error", e)
@@ -164,11 +164,15 @@ object Extraction {
     }
   }
 
-  private def extract0[A](json: JValue, formats: Formats, mf: Manifest[A]): A = {
+  private def extract0[A](json: JValue, mf: Manifest[A])(implicit formats: Formats): A = {
     if (mf.erasure == classOf[List[_]] || mf.erasure == classOf[Map[_, _]])
       fail("Root object can't yet be List or Map (needs a feature from Scala 2.8)")
 
-    val mapping = mappingOf(mf.erasure)
+    extract(json, TypeInfo(mf.erasure, None)).asInstanceOf[A]
+  }
+
+  def extract(json: JValue, target: TypeInfo)(implicit formats: Formats): Any = {
+    val mapping = mappingOf(target.clazz)
 
     def newInstance(targetType: TypeInfo, args: List[Arg], json: JValue) = {
       def instantiate(constructor: JConstructor[_], args: List[Any]) = 
@@ -270,7 +274,7 @@ object Extraction {
       case x => fail("Expected JField but got " + x)
     }
 
-    build(json, mapping).asInstanceOf[A]
+    build(json, mapping)
   }
 
   private def convert(json: JValue, targetType: Class[_], formats: Formats): Any = json match {

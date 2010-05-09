@@ -28,7 +28,7 @@ class JsonBoxSerializer extends Serializer {
   import scala.collection.jcl.Conversions._
 
   def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), Any] = {
-    case (TypeInfo(BoxClass, Some(ptype)), json) => json match {
+    case (t @ TypeInfo(BoxClass, Some(ptype)), json) => json match {
       case JNull | JNothing => Empty
       case JObject(JField("$box_failure", JString("Failure")) :: 
                    JField("msg", JString(msg)) :: 
@@ -39,7 +39,7 @@ class JsonBoxSerializer extends Serializer {
                    JField("exception", JArray(exceptions)) ::
                    JField("chain", JArray(chain)) :: 
                    JField("param", param) :: Nil) => ParamFailure(msg, null)
-      case x => error(">>>>>>>>>>>>>> " + ptype.getActualTypeArguments.mkString(",")) //Full(extract(x))
+      case x => Full(extract(x, TypeInfo(ptype.getActualTypeArguments()(0).asInstanceOf[Class[_]], None)))
     }
   }
 
@@ -47,36 +47,6 @@ class JsonBoxSerializer extends Serializer {
     case Full(x) => decompose(x)
     case Empty => JNothing
   }
-
-/*
-  implicit def boxExtractor[A](implicit 
-                               formats: Formats, 
-                               mf: Manifest[A],
-                               e: Extractor[A]): Extractor[Box[A]] = new Extractor[Box[A]] {
-    def extract(json: JValue): Box[A] = json match {
-      case JNull | JNothing => Empty
-      case JObject(JField("$box_failure", JString("Failure")) :: 
-                   JField("msg", JString(msg)) :: 
-                   JField("exception", JArray(exceptions)) ::
-                   JField("chain", JArray(chain)) :: Nil) => Failure(msg)
-      case JObject(JField("$box_failure", JString("ParamFailure")) :: 
-                   JField("msg", JString(msg)) :: 
-                   JField("exception", JArray(exceptions)) ::
-                   JField("chain", JArray(chain)) :: 
-                   JField("param", param) :: Nil) => ParamFailure(msg, null)
-      case x => Full(e.extract(x))
-    }
-  }
-
-  implicit def boxDecomposer[A](implicit 
-                                formats: Formats,
-                                d: Decomposer[A]): Decomposer[Box[A]] = new Decomposer[Box[A]] {
-    def decompose(x: Box[A]): JValue = x match {
-      case Full(x) => d.decompose(x)
-      case Empty => JNothing
-    }
-  }
-  */
 } 
 
 }
