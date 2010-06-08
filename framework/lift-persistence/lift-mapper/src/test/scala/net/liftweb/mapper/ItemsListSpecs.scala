@@ -41,11 +41,10 @@ object ItemsListSpecs extends Specification {
     Schemifier.destroyTables_!!(DefaultConnectionIdentifier, Schemifier.neverF _,  SampleItem)
     Schemifier.schemify(true, Schemifier.neverF _, SampleItem)
     new ItemsList[SampleItem] {
-      val metaMapper = SampleItem
+      def metaMapper = SampleItem
     }
   }
-
-  /* FIXME: 280
+  
   "ItemsList" should {
     "buffer items to save" in {
       val il = init
@@ -74,11 +73,11 @@ object ItemsListSpecs extends Specification {
       il.remove(il.added(0))
       il.save
       SampleItem.count must_== 4
-      il.added.length must_== 0  // BUG EXPOSED!!!
+      il.added.length must_== 0
       il.removed.length must_== 0
     }
   }
-  */
+  
 }
 
 class SampleItem extends LongKeyedMapper[SampleItem] with IdPK {
