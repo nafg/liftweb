@@ -332,19 +332,24 @@ class LiftSession(private[http] val _contextPath: String, val uniqueId: String,
 
   def running_? = _running_?
 
-  private var cometList: List[AnyActor] = Nil
+  private var cometList: List[(AnyActor, Req)] = Nil
 
   private[http] def breakOutComet(): Unit = {
     val cl = synchronized {cometList}
-    cl.foreach(_ ! BreakOut)
+    cl.foreach(_._1 ! BreakOut)
+  }
+  
+  private[http] def cometForHost(hostAndPath: String): List[(AnyActor, Req)] =
+  synchronized {cometList}.filter{
+    case (_, r) => r.hostAndPath == hostAndPath
   }
 
-  private[http] def enterComet(what: AnyActor): Unit = synchronized {
+  private[http] def enterComet(what: (AnyActor, Req)): Unit = synchronized {
     cometList = what :: cometList
   }
 
   private[http] def exitComet(what: AnyActor): Unit = synchronized {
-    cometList = cometList.remove(_ eq what)
+    cometList = cometList.remove(_._1 eq what)
   }
 
   private case class RunnerHolder(name: String, func: S.AFuncHolder, owner: Box[String])
@@ -750,15 +755,13 @@ class LiftSession(private[http] val _contextPath: String, val uniqueId: String,
       if (ite.getCause.isInstanceOf[ResponseShortcutException]) => throw ite.getCause.asInstanceOf[ResponseShortcutException]
   }, c.newInstance)
 
-  private def findAttributeSnippet(attrValue: String, rest: MetaData): MetaData = {
+  private def findAttributeSnippet(attrValue: String, rest: MetaData, params: AnyRef*): MetaData = {
     S.doSnippet(attrValue) {
       val (cls, method) = splitColonPair(attrValue, null, "render")
-
-
       first(LiftRules.snippetNamesToSearch.vend(cls)) { nameToTry =>
         findSnippetClass(nameToTry) flatMap { clz =>
           instantiateOrRedirect(clz) flatMap { inst =>
-            invokeMethod(clz, inst, method) match {
+            invokeMethod(clz, inst, method) or invokeMethod(clz, inst, method, params.toList.toArray) match {
               case Full(md: MetaData) => Full(md.copy(rest))
               case _ => Empty
             }
@@ -789,6 +792,7 @@ class LiftSession(private[http] val _contextPath: String, val uniqueId: String,
       case Null => Null
       case mine: PrefixedAttribute if (mine.pre == "lift") => {
         mine.key match {
+          case s if s.indexOf('.') > -1 => findAttributeSnippet(s, processAttributes(in.next), mine)
           case "snippet" => findAttributeSnippet(mine.value.text, processAttributes(in.next))
           case _ => mine.copy(processAttributes(in.next))
         }
@@ -797,9 +801,21 @@ class LiftSession(private[http] val _contextPath: String, val uniqueId: String,
     }
   }
 
+  /**
+  * See if there's a object singleton with the right name
+  */
+  private def findSnippetObject(cls: String): Box[AnyRef] =
+  findSnippetClass(cls+"$").flatMap {
+    c =>
+    tryo {
+      val field = c.getField("MODULE$")
+      field.get(null)
+    }
+  }
+
   private def findSnippetInstance(cls: String): Box[AnyRef] =
   S.snippetForClass(cls) or
-  (findSnippetClass(cls).flatMap(c => instantiateOrRedirect(c)) match {
+  (findSnippetClass(cls).flatMap(c => instantiateOrRedirect(c) or findSnippetObject(cls)) match {
       case Full(inst: StatefulSnippet) =>
         inst.addName(cls); S.overrideSnippetForClass(cls, inst); Full(inst)
       case Full(ret) => Full(ret)

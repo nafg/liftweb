@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2010 WorldWide Conferencing, LLC
+ * Copyright 2007-2010 WorldWide Conferencing, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,14 +15,35 @@
  */
 
 package net.liftweb {
-package wizard {
+package webapptest {
+package snippet {
 
-import _root_.net.liftweb._
-import http._
+import net.liftweb.http._
+import net.liftweb.util.Helpers._
+import scala.xml._
 
-object HtmlRenderer {
-  def apply(in: Wizard): DispatchSnippet = null
+object Counter {
+  @volatile var x = 0
 }
 
+class Oneshot {
+  def render(in: NodeSeq): NodeSeq = {
+    S.disableTestFuncNames {
+      S.oneShot {
+        SHtml.text("", s => {Counter.x += 1})
+      }
+    }
+  }
+}
+
+class Twoshot {
+  def render(in: NodeSeq): NodeSeq = {
+    S.disableTestFuncNames {
+      SHtml.text("", s => Counter.x += 1)
+    }
+  }
+}
+
+}
 }
 }

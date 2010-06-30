@@ -38,19 +38,24 @@
    see http://maven.apache.org/plugins/maven-changes-plugin/usage.html for full guide
    -->
     <release version="${project.version}" date="${publishDate}" description="Lift 2.0 Snapshot">
-      <action dev="dpp" type="add" issue="511" system="assembla">
-	Enhanced TestKit to provide more generic HTTP request
-	capabilities
+      <action dev="dpp" type="fix" issue="544" system="assembla">
+	Fixed a null pointer exception in Testkit
       </action>
 
-      <action dev="dpp" type="fix" issue="514" system="assembla">
-	MappedString.apply(Empty) now correctly results in
-	a null String in the column
+      <action dev="dpp" type="fix" issue="545" system="assembla">
+	JsonResponse passes the HTTP response code correctly now
       </action>
 
-      <action dev="dpp" type="add" issue="535" system="assembla">
-	Enhanced date math using JodaTime and more
-	seamless conversion to/from Date and JodaTime objects
+      <action dev="dpp" type="add" issue="437" system="assembla">
+	Mechanism to Abstract Over Retried AJAX Calls
+      </action>
+
+      <action dev="dpp" type="fix" issue="538" system="assembla">
+        Put Expires or Cache-Control=no-cache headers into Comet, REST and Ajax response
+      </action>
+
+      <action dev="dpp" type="add" issue="536" system="assembla">
+        add missing SHtml.ajaxTextarea...() methods
       </action>
 
       <action dev="dpp" type="fix" issue="370" system="assembla">
@@ -60,9 +65,63 @@
       <action dev="dpp" type="add" issue="532" system="assembla">
 	Add explicit test for MetaMapper comparisons in foreign keys
       </action>
-      
+
       <action dev="eltimn" type="add" issue="533" system="assembla">
 	Add MongoPasswordField
+      </action>
+
+      <action dev="timperrett" type="fix" issue="542" system="assembla">
+        AJAX and Comet S.notice et al no longer clear messages before posting their own
+        meaning you can now use Comet and AJAX and normal snippets to post messages all together
+      </action>
+
+      <action dev="dpp" type="fix" issue="531" system="assembla">
+        BooleanOption not lazy enough
+      </action>
+
+      <action dev="dpp" type="update" issue="509" system="assembla">
+        Major cleanup of HTTP mocks
+      </action>
+
+      <action dev="dpp" type="update" issue="528" system="assembla">
+        Added a default logger to LiftActor
+      </action>
+
+      <action dev="dpp" type="update" issue="162" system="assembla">
+        Unified a lot of the input testing into a single trait (e.g.,valMinLen, etc.)
+      </action>
+
+      <action dev="dpp" type="update" issue="527" system="assembla">
+        changed EmptyBox's type signature
+      </action>
+
+      <action dev="dpp" type="add" issue="512" system="assembla">
+        Added a method to create a query string in MetaMapper from
+        QueryParams
+      </action>
+
+      <action dev="dpp" type="add" issue="511" system="assembla">
+        Enhanced TestKit to provide more generic HTTP request capabilities
+      </action>
+
+      <action dev="dpp" type="fix" issue="514" system="assembla">
+        MappedString.apply(Empty) now correctly results in a null String in the column
+      </action>
+
+      <action dev="dpp" type="add" issue="535" system="assembla">
+        Enhanced date math using JodaTime and more seamless conversion to/from Date and JodaTime objects
+      </action>
+
+      <action dev="dpp" type="fix" issue="370" system="assembla">
+        Smarter caching of foreign key objects
+      </action>
+
+      <action dev="dpp" type="add" issue="532" system="assembla">
+        Add explicit test for MetaMapper comparisons in foreign keys
+      </action>
+
+      <action dev="eltimn" type="add" issue="533" system="assembla">
+        Add MongoPasswordField
       </action>
     </release>
 

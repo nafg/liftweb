@@ -158,9 +158,29 @@ object LiftRules extends Factory with FormVendor with LazyLoggable {
         ret
     }
 
-    ret.breakOutComet()
+    makeCometBreakoutDecision(ret, req)
     ret
   }
+
+  /**
+  * A function that takes appropriate action in breaking out of any
+  * existing comet requests based on the request, browser type, etc.
+  */
+  @volatile var makeCometBreakoutDecision: (LiftSession, Req) => Unit =
+  (session, req) => {
+    // get the open sessions to the host (this means that any DNS wildcarded
+    // Comet requests will not be counted
+    val which = session.cometForHost(req.hostAndPath)
+
+    // get the maximum requests given the browser type
+    val max = maxConcurrentRequests.vend(req) - 2 // this request and any open comet requests
+
+    // dump the oldest requests
+    which.drop(max).foreach {
+      case (actor, req) => actor ! BreakOut
+    }
+  }
+    
 
 
   /**
@@ -217,7 +237,10 @@ object LiftRules extends Factory with FormVendor with LazyLoggable {
    * requests are being serviced for a given session, messages
    * will be sent to all Comet requests to terminate
    */
-  @volatile var maxConcurrentRequests = 2
+  val maxConcurrentRequests: FactoryMaker[Req => Int] = new FactoryMaker((x: Req) => x match {
+    case r if r.isFirefox35_+ || r.isIE8 || r.isChrome3_+ || r.isOpera9 || r.isSafari3_+ => 6
+    case _ => 2
+  }) {}
 
   /**
    * A partial function that determines content type based on an incoming
@@ -269,6 +292,15 @@ object LiftRules extends Factory with FormVendor with LazyLoggable {
       tryo{f()}
     }
   }
+
+  /**
+   * Set the doc type used.
+   */
+  val docType: FactoryMaker[Req => Box[String]] = new FactoryMaker( (r: Req) => r  match {
+    case _ if S.skipDocType => Empty
+    case _ if S.getDocType._1 => S.getDocType._2
+    case _ => Full(DocType.xhtmlTransitional)
+  }){}
 
   /**
    * The maximum allowed size of a complete mime multi-part POST.  Default 8MB
@@ -371,17 +403,22 @@ object LiftRules extends Factory with FormVendor with LazyLoggable {
       S.messages _
     else
       S.noIdMessages _
-
-    val xml = List((MsgsErrorMeta.get, f(S.errors), S.??("msg.error"), LiftRules.noticesContainerId + "_error"),
-      (MsgsWarningMeta.get, f(S.warnings), S.??("msg.warning"), LiftRules.noticesContainerId + "_warn"),
-      (MsgsNoticeMeta.get, f(S.notices), S.??("msg.notice"), LiftRules.noticesContainerId + "_notice")) flatMap {
-      msg => msg._1 match {
-        case Full(meta) => <div id={msg._4}>{func(msg._2 _, meta.title openOr "", 
-           meta.cssClass.map(new UnprefixedAttribute("class", _, Null)) openOr Null)}</div>
-        case _ => <div id={msg._4}>{func(msg._2 _, msg._3, Null)}</div>
+    
+    def makeList(meta: Box[AjaxMessageMeta], notices: List[NodeSeq], title: String, id: String): 
+      List[(Box[AjaxMessageMeta], List[NodeSeq], String, String)] = 
+        if (notices.isEmpty) Nil else List((meta, notices, title, id))
+    
+    val xml = 
+      ((makeList(MsgsErrorMeta.get, f(S.errors), S.??("msg.error"), LiftRules.noticesContainerId + "_error")) ++
+       (makeList(MsgsWarningMeta.get, f(S.warnings), S.??("msg.warning"), LiftRules.noticesContainerId + "_warn")) ++
+       (makeList(MsgsNoticeMeta.get, f(S.notices), S.??("msg.notice"), LiftRules.noticesContainerId + "_notice"))) flatMap {
+         msg => msg._1 match {
+           case Full(meta) => <div id={msg._4}>{func(msg._2 _, meta.title openOr "", 
+             meta.cssClass.map(new UnprefixedAttribute("class",_, Null)) openOr Null)}</div>
+           case _ => <div id={msg._4}>{func(msg._2 _, msg._3, Null)}</div>
+        }
       }
-    }
-
+    
     val groupMessages = xml match {
       case Nil => JsCmds.Noop
       case _ => LiftRules.jsArtifacts.setHtml(LiftRules.noticesContainerId, xml) &
@@ -947,7 +984,7 @@ object LiftRules extends Factory with FormVendor with LazyLoggable {
   private def cvt(ns: Node, headers: List[(String, String)], cookies: List[HTTPCookie], req: Req, code:Int) =
     convertResponse({
       val ret = XhtmlResponse(ns,
-        ResponseInfo.docType(req),
+        LiftRules.docType.vend(req),
         headers, cookies, code,
         S.ieMode)
       ret._includeXmlVersion = !S.skipDocType
@@ -955,11 +992,14 @@ object LiftRules extends Factory with FormVendor with LazyLoggable {
     }, headers, cookies, req)
 
   @volatile var defaultHeaders: PartialFunction[(NodeSeq, Req), List[(String, String)]] = {
-    case _ => List("Expires" -> Helpers.nowAsInternetDate,
-      "Cache-Control" ->
-              "no-cache; private; no-store; must-revalidate; max-stale=0; post-check=0; pre-check=0; max-age=0",
-      "Pragma" -> "no-cache" /*,
-      "Keep-Alive" -> "timeout=3, max=993" */ )
+    case _ => 
+      val d = Helpers.nowAsInternetDate
+      List("Expires" -> d,
+           "Date" -> d,
+           "Cache-Control" ->
+           "no-cache; private; no-store",
+           "Pragma" -> "no-cache" /*,
+           "Keep-Alive" -> "timeout=3, max=993" */ )
   }
 
   /**
@@ -1048,11 +1088,11 @@ object LiftRules extends Factory with FormVendor with LazyLoggable {
   @volatile var exceptionHandler = RulesSeq[ExceptionHandlerPF].append {
     case (Props.RunModes.Development, r, e) =>
       logger.error("Exception being returned to browser when processing " + r.uri.toString + ": " + showException(e))
-      XhtmlResponse((<html> <body>Exception occured while processing {r.uri}<pre>{showException(e)}</pre> </body> </html>), ResponseInfo.docType(r), List("Content-Type" -> "text/html; charset=utf-8"), Nil, 500, S.ieMode)
+      XhtmlResponse((<html> <body>Exception occured while processing {r.uri}<pre>{showException(e)}</pre> </body> </html>), LiftRules.docType.vend(r), List("Content-Type" -> "text/html; charset=utf-8"), Nil, 500, S.ieMode)
 
     case (_, r, e) =>
       logger.error("Exception being returned to browser when processing " + r, e)
-      XhtmlResponse((<html> <body>Something unexpected happened while serving the page at {r.uri}</body> </html>), ResponseInfo.docType(r), List("Content-Type" -> "text/html; charset=utf-8"), Nil, 500, S.ieMode)
+      XhtmlResponse((<html> <body>Something unexpected happened while serving the page at {r.uri}</body> </html>), LiftRules.docType.vend(r), List("Content-Type" -> "text/html; charset=utf-8"), Nil, 500, S.ieMode)
   }
 
   /**
@@ -1319,7 +1359,10 @@ object LiftRules extends Factory with FormVendor with LazyLoggable {
     requestState.testFor304(modTime) or
             Full(JavaScriptResponse(renderCometScript(liftSession),
               List("Last-Modified" -> toInternetDate(modTime),
-                "Expires" -> toInternetDate(modTime + 10.minutes)),
+                   "Expires" -> toInternetDate(modTime + 10.minutes),
+                   "Date" -> Helpers.nowAsInternetDate,
+                   "Pragma" -> "",
+                   "Cache-Control" -> ""),
               Nil, 200))
   }
 

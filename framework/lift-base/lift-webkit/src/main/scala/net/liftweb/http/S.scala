@@ -163,6 +163,8 @@ object S extends HasParams with Loggable {
   private val _responseCookies = new ThreadGlobal[CookieHolder]
   private val _lifeTime = new ThreadGlobal[Boolean]
   private val autoCleanUp = new ThreadGlobal[Boolean]
+  private val _oneShot = new ThreadGlobal[Boolean]
+  private val _disableTestFuncNames = new ThreadGlobal[Boolean]
 
   private object postFuncs extends TransientRequestVar(new ListBuffer[() => Unit])
   private object p_queryLog extends TransientRequestVar(new ListBuffer[(String, Long)])
@@ -817,6 +819,57 @@ for {
    */
   def redirectTo[T](where: String, func: () => Unit): T =
     throw ResponseShortcutException.redirect(where, func)
+
+
+  /**
+   * Redirects the browser to a given URL. Note that the underlying mechanism for redirects is to
+   * throw a ResponseShortcutException, so if you're doing the redirect within a try/catch block,
+   * you need to make sure to either ignore the redirect exception or rethrow it. Two possible
+   * approaches would be:
+   *
+   * <pre name="code" class="scala" >
+   *   ...
+   *   try  {
+   *     // your code here
+   *     S.seeOther(...)
+   * } catch  {
+   *     case e: Exception if !e.instanceOf[net.liftweb.http.ResponseShortcutException] => ...
+   * }
+   * </pre>
+   *
+   * or
+   *
+   * <pre name="code" class="scala" >
+   *   ...
+   *   try  {
+   *     // your code here
+   *     S.seeOther(...)
+   * } catch  {
+   *     case rse: net.liftweb.http.ResponseShortcutException => throw rse
+   *     case e: Exception => ...
+   * }
+   * </pre>
+   *
+   * @param where The new URL to redirect to.
+   *
+   * @see ResponseShortcutException
+   * @see # seeOther ( String, ( ) => Unit)
+   */
+  def seeOther[T](where: String): T = throw ResponseShortcutException.seeOther(where)
+
+  /**
+   * Redirects the browser to a given URL and registers a function that will be executed when the browser
+   * accesses the new URL. Otherwise the function is exactly the same as S.seeOther(String), which has
+   * example documentation. Note that if the URL that you redirect to must be part of your web application
+   * or the function won't be executed. This is because the function is only registered locally.
+   *
+   * @param where The new URL to redirect to.
+   * @param func The function to be executed when the redirect is accessed.
+   *
+   * @see # seeOther ( String )
+   */
+  def seeOther[T](where: String, func: () => Unit): T =
+    throw ResponseShortcutException.seeOther(where, func)
 
   private[http] object oldNotices extends
   TransientRequestVar[Seq[(NoticeType.Value, NodeSeq, Box[String])]](Nil)
@@ -1651,21 +1704,13 @@ for {
    * The hostname to which the request was sent. This is taken from the "Host" HTTP header, or if that
    * does not exist, the DNS name or IP address of the server.
    */
-  def hostName: String = containerRequest.map(_.serverName) openOr {
-    import _root_.java.net._
-    InetAddress.getLocalHost.getHostName
-  }
+  def hostName: String = request.map(_.hostName) openOr Req.localHostName
 
   /**
    * The host and path of the request up to and including the context path. This does
    * not include the template path or query string.
    */
-  def hostAndPath: String =
-    containerRequest.map(r => (r.scheme, r.serverPort) match {
-      case ("http", 80) => "http://" + r.serverName + contextPath
-      case ("https", 443) => "https://" + r.serverName + contextPath
-      case (sch, port) => sch + "://" + r.serverName + ":" + port + contextPath
-    }) openOr ""
+  def hostAndPath: String = request.map(_.hostAndPath) openOr ""
 
   /**
    * Get a map of function name bindings that are used for form and other processing. Using these
@@ -1760,26 +1805,68 @@ for {
    * that are executed when a request contains the 'name' request parameter.
    */
   def addFunctionMap(name: String, value: AFuncHolder) = {
-   autoCleanUp.box match {
-     case Full(true) =>  _functionMap.value += (name -> 
-       new S.ProxyFuncHolder(value) {
-         override def apply(in: List[String]): Any = {
-           try {
-             super.apply(in)
-           } finally {
-             S.session.map(_.removeFunction(name))
-           }
-         }
+   (autoCleanUp.box, _oneShot.box) match {
+     case (Full(true), _) => {
+       _functionMap.value += (name -> 
+                              new S.ProxyFuncHolder(value) {
+                                override def apply(in: List[String]): Any = {
+                                  try {
+                                    value.apply(in)
+                                  } finally {
+                                    S.session.map(_.removeFunction(name))
+                                  }
+                                }
+                                
+                                override def apply(in: FileParamHolder): Any = {
+                                  try {
+                                    value.apply(in)
+                                  } finally {
+                                    S.session.map(_.removeFunction(name))
+                                  }
+                                }
+                              })
+     }
 
-         override def apply(in: FileParamHolder): Any = {
-           try {
-             super.apply(in)
-           } finally {
-             S.session.map(_.removeFunction(name))
-           }
-         }
-       })
-     case _ => _functionMap.value += (name -> value)
+     case (_, Full(true)) => {
+       def setProxyFunc(retVal: Any) {
+         _functionMap.value += 
+         (name -> new S.ProxyFuncHolder(value) {
+          override def apply(in: List[String]): Any = retVal
+          override def apply(in: FileParamHolder): Any = retVal
+        })
+       }
+       
+       _functionMap.value += 
+       (name -> 
+        new S.ProxyFuncHolder(value) {
+          override def apply(in: List[String]): Any = {
+            val ret = try {
+              value.apply(in)
+            } finally {
+              S.session.map(_.removeFunction(name))
+            }
+            // after the function is executed, memoize
+            // the return value and always return the memoized value
+            setProxyFunc(ret)
+            ret
+          }
+          
+          override def apply(in: FileParamHolder): Any = {
+            val ret = try {
+              value.apply(in)
+            } finally {
+              S.session.map(_.removeFunction(name))
+            }
+            // after the function is executed, memoize
+            // the return value and always return the memoized value
+            setProxyFunc(ret)
+            ret
+          }
+        })
+     }
+       
+     case _ =>
+       _functionMap.value += (name -> value)
    }
   }
 
@@ -1803,7 +1890,14 @@ for {
     case _ => true
   }
 
-  def formFuncName: String = if (Props.testMode) {
+  def disableTestFuncNames_? : Boolean = _disableTestFuncNames.box openOr false
+
+  def disableTestFuncNames[T](f: => T): T =
+    _disableTestFuncNames.doWith(true) {
+      f
+    }
+
+  def formFuncName: String = if (Props.testMode && !disableTestFuncNames_?) {
     val bump: Long = ((_formGroup.is openOr 0) + 1000L) * 10000L
     val num: Int = formItemNumber.is
     formItemNumber.set(num + 1)
@@ -2365,6 +2459,16 @@ for {
       f
     }
   }
+
+  /**
+   * All functions created inside the oneShot scope
+   * will only be called once and their results will be
+   * cached and served again if the same function is invoked
+   */
+  def oneShot[T](f: => T): T =
+    _oneShot.doWith(true) {
+      f
+    }
 
 }
 

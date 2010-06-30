@@ -80,6 +80,16 @@
       background-color: #eee;
     }
 
+.lift_error {
+  color: red;
+}
+
+.lift_warning {
+  color: yellow;
+}
+
+.lift_notice {
+}
 
     /* ]]> */
   </style>
@@ -134,7 +144,9 @@
         Stats: Total Memory: <lift:runtime_stats:total_mem/>
         Free Memory: <lift:runtime_stats:free_mem/>
         Open Sessions: <lift:runtime_stats:sessions/>
+	<br/>
         Updated At: <lift:runtime_stats:updated_at/>
+        Started At: <lift:runtime_stats:started_at/>
       </h4>
     </div>
   </div>

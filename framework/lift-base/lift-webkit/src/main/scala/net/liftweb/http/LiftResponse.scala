@@ -256,14 +256,25 @@ trait LiftResponse {
   def toResponse: BasicResponse
 }
 
-object JsonResponse extends HeaderDefaults {
-  def apply(json: JsExp): LiftResponse = JsonResponse(json, headers, cookies, 200)
-  def apply(json: JsonAST.JValue): LiftResponse = apply(json, headers, cookies, 200)
-  def apply(json: JsonAST.JValue, code: Int): LiftResponse = apply(json, headers, cookies, code)
-  def apply(_json: JsonAST.JValue, headers: List[(String, String)], cookies: List[HTTPCookie], code: Int): LiftResponse =
+object JsonResponse {
+  def headers = S.getHeaders(Nil)
+  def cookies = S.responseCookies
+
+  def apply(json: JsExp): LiftResponse = 
+    new JsonResponse(json, headers, cookies, 200)
+  
+  def apply(json: JsonAST.JValue): LiftResponse = 
+    apply(json, headers, cookies, 200)
+
+  def apply(json: JsonAST.JValue, code: Int): LiftResponse = 
+    apply(json, headers, cookies, code)
+
+
+  def apply(_json: JsonAST.JValue, _headers: List[(String, String)], _cookies: List[HTTPCookie], code: Int): LiftResponse = {
     new JsonResponse(new JsExp {
       lazy val toJsCmd = Printer.pretty(JsonAST.render((_json)))
-    }, headers, cookies, 200)
+    }, _headers, _cookies, code)
+  }
 }
 
 case class JsonResponse(json: JsExp, headers: List[(String, String)], cookies: List[HTTPCookie], code: Int) extends LiftResponse {
@@ -355,7 +366,12 @@ case class OutputStreamResponse(out: (java.io.OutputStream) => Unit,
 
 case class RedirectResponse(uri: String, cookies: HTTPCookie*) extends LiftResponse {
   // The Location URI is not resolved here, instead it is resolved with context path prior of sending the actual response
-  def toResponse = InMemoryResponse(Array(0), List("Location" -> uri), cookies toList, 302)
+  def toResponse = InMemoryResponse(Array(), List("Location" -> uri, "Content-Type" -> "text/plain"), cookies toList, 302)
+}
+
+case class SeeOtherResponse(uri: String, cookies: HTTPCookie*) extends LiftResponse {
+  // The Location URI is not resolved here, instead it is resolved with context path prior of sending the actual response
+  def toResponse = InMemoryResponse(Array(), List("Location" -> uri, "Content-Type" -> "text/plain"), cookies toList, 303)
 }
 
 object DoRedirectResponse {
@@ -392,12 +408,25 @@ object DocType {
   val html5 = "<!DOCTYPE html>"
 }
 
+/**
+ * Avoid using this in favor of LiftRules.docType
+ *
+ */
+@deprecated
 object ResponseInfo {
-  var docType: PartialFunction[Req, Box[String]] = {
-    case _ if S.skipDocType => Empty
-    case _ if S.getDocType._1 => S.getDocType._2
-    case _ => Full(DocType.xhtmlTransitional)
-  }
+
+   def docType: PartialFunction[Req, Box[String]] = new PartialFunction[Req, Box[String]](){
+     def isDefinedAt(req: Req): Boolean  = true
+
+     def apply(req: Req): Box[String] = LiftRules.docType.vend(req)
+   }
+
+   def docType_=(f: PartialFunction[Req, Box[String]]) = LiftRules.docType.default.set { (req: Req) => 
+     if (f.isDefinedAt(req))
+       f(req)
+     else
+       Full(DocType.xhtmlTransitional)
+   }
 }
 
 
