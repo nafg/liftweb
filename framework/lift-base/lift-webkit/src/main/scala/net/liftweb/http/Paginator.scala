@@ -154,7 +154,7 @@ package http {
     /**
      * How to display the page's starting record
      */
-    def recordsFrom: String = first+1 toString
+    def recordsFrom: String = (first+1 min count) toString
     /**
      * How to display the page's ending record
      */
