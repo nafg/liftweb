@@ -80,6 +80,9 @@ package http {
    * @author nafg and Timothy Perrett
    */
   trait SortedPaginator[T, C] extends Paginator[T] {
+    /**
+     * Pair of (column index, ascending)
+     */
     type SortState = (Int, Boolean)
     /**
      * The sort headers: pairs of column labels, and column identifier objects of type C.
@@ -90,11 +93,11 @@ package http {
     /**
      * Get the current sort state: Pair of (column index, ascending?)
      */
-    def sort: (Int, Boolean) = _sort
+    def sort: SortState = _sort
     /**
      * Set the current sort state: Pair of (column index, ascending?)
      */
-    def sort_=(s: (Int, Boolean)) = _sort = s
+    def sort_=(s: SortState) = _sort = s
 
     /**
      * Returns a new SortState based on a column index.
@@ -105,7 +108,7 @@ package http {
      * Example usage:
      * sortedPaginator.sort = sortedPaginator.sortedBy(columns.indexOf(clickedColumn))
      */
-    def sortedBy(column: Int): (Int, Boolean) = sort match {
+    def sortedBy(column: Int): SortState = sort match {
       case (`column`, true) =>  // descending is only if it was already sorted ascending
         (column, false)
       case _ =>
@@ -116,9 +119,8 @@ package http {
   /**
    * This is the paginator snippet. It provides page
    * navigation and column sorting links.
-   * View XHTML is as follows (prefix is configurable):
-	 * 
-   * nav prefix
+   * View XHTML is as follows: 
+   * nav prefix (prefix is configurable by overriding def navPrefix)
    *  - &lt;nav:first/&gt; - a link to the first page
    *  - &lt;nav:prev/&gt; - a link to the previous page
    *  - &lt;nav:allpages/&gt; - individual links to all pages. The contents of this node are used to separate page links.
@@ -156,7 +158,7 @@ package http {
     /**
      * How to display the page's ending record
      */
-    def recordsTo: String = (first+itemsPerPage) min count toString
+    def recordsTo: String = ((first+itemsPerPage) min count) toString
     /**
      * The status displayed when using &lt;nav:records/&gt; in the template.
      */
@@ -226,7 +228,7 @@ package http {
         "records" -> currentXml,
         "recordsFrom" -> Text(recordsFrom),
         "recordsTo" -> Text(recordsTo),
-        "recordsCount" -> Text(count)
+        "recordsCount" -> Text(count.toString)
       )
     }
   }
@@ -254,8 +256,8 @@ package http {
      * Calculates the page url taking sorting into account.
      */
     def sortedPageUrl(offset: Long, sort: (Int, Boolean)) = sort match {
-      case (field, ascending) =>
-        appendParams(super.pageUrl(offset), List(sortParam->field.toString, ascendingParam->ascending.toString))
+      case (col, ascending) =>
+        appendParams(super.pageUrl(offset), List(sortParam->col.toString, ascendingParam->ascending.toString))
     }
     /**
      * Overrides pageUrl and delegates to sortedPageUrl using the current sort
@@ -265,8 +267,8 @@ package http {
      * Overrides sort, giving the URL query parameters precedence
      */
     override def sort = super.sort match {
-      case (field, ascending) => (
-        S.param("sort").map(toInt) openOr field,
+      case (col, ascending) => (
+        S.param("sort").map(toInt) openOr col,
         S.param("asc").map(toBoolean) openOr ascending
       )
     }
@@ -276,8 +278,8 @@ package http {
     override def paginate(xhtml: NodeSeq): NodeSeq =
       bind(sortPrefix, super.paginate(xhtml),
         headers.zipWithIndex.map {
-          case ((binding, _), fieldIndex) =>
-            FuncBindParam(binding, (ns:NodeSeq) => <a href={sortedPageUrl(first, sortedBy(fieldIndex))}>{ns}</a> )
+          case ((binding, _), colIndex) =>
+            FuncBindParam(binding, (ns:NodeSeq) => <a href={sortedPageUrl(first, sortedBy(colIndex))}>{ns}</a> )
         }.toSeq : _*
       )
   }
