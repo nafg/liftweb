@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package net.liftweb {
 package mapper {
 
@@ -33,18 +33,18 @@ class ItemsListSpecsAsTest extends JUnit3(ItemsListSpecs)
 object ItemsListSpecsRunner extends ConsoleRunner(ItemsListSpecs)
 
 object ItemsListSpecs extends Specification {
-  
+
   val provider = DBProviders.H2MemoryProvider
-  
+
   def init = {
     provider.setupDB
     Schemifier.destroyTables_!!(DefaultConnectionIdentifier, Schemifier.neverF _,  SampleItem)
     Schemifier.schemify(true, Schemifier.neverF _, SampleItem)
     new ItemsList[SampleItem] {
-      val metaMapper = SampleItem
+      def metaMapper = SampleItem
     }
   }
-
+  
   "ItemsList" should {
     "buffer items to save" in {
       val il = init
@@ -53,19 +53,19 @@ object ItemsListSpecs extends Specification {
       il.add
       il.current.length must_== 0
       il.added.length must_== 3
-      
+
       il.save
       SampleItem.count must_== 3
       il.current.length must_== 3
     }
-    
+
     "correctly handle removing an unsaved item" in {
       val il = init
       il.add
       il.add
       il.add
       il.save
-      
+
       il.add
       il.add
       il.add
@@ -74,7 +74,7 @@ object ItemsListSpecs extends Specification {
       il.save
       SampleItem.count must_== 4
       il.added.length must_== 0
-      il.removed.length must_== 0    
+      il.removed.length must_== 0
     }
   }
   

@@ -42,32 +42,61 @@ object Comet extends DispatchSnippet with LazyLoggable {
   Elem(cometActor.parentTag.prefix, cometActor.parentTag.label, cometActor.parentTag.attributes,
        cometActor.parentTag.scope, Group(xml)) %
   (new UnprefixedAttribute("id", Text(spanId), Null)) %
-  (timeb.map(time => (new PrefixedAttribute("lift", "when", Text(time.toString), Null))) openOr Null)
+  (timeb.filter(_ > 0L).map(time => (new PrefixedAttribute("lift", "when", Text(time.toString), Null))) openOr Null)
     
   private def buildComet(kids: NodeSeq) : NodeSeq = {
+    val theType: Box[String] = S.attr.~("type").map(_.text)
+    val name: Box[String] = S.attr.~("name").map(_.text)
+
 
     (for {ctx <- S.session} yield {
-       val theType: Box[String] = S.attr.~("type").map(_.text)
-       val name: Box[String] = S.attr.~("name").map(_.text)
+      if (!ctx.stateful_?) 
+        throw new StateInStatelessException(
+          "Lift does not support Comet for stateless requests")
+
        try {
-         ctx.findComet(theType, name, kids, S.attrsFlattenToMap).map(c =>
-
-            (c.!?(26600L, AskRender)) match {
-              case Full(AnswerRender(response, _, when, _)) if c.hasOuter =>
-                buildSpan(Empty, c.buildSpan(when, response.inSpan) ++ response.outSpan, c, c.uniqueId+"_outer")
-
-              case Full(AnswerRender(response, _, when, _)) =>
-                c.buildSpan(when, response.inSpan)
-
-              case _ => 
-                 buildSpan(Full(0), Comment("FIXME comet type "+theType+" name "+name+" timeout") ++ kids, c, c.uniqueId)
-            }) openOr Comment("FIXME - comet type: "+theType+" name: "+name+" Not Found ") ++ kids
-          } catch {
-            case e => logger.error("Failed to find a comet actor", e); kids
-          }
-    }) openOr Comment("FIXME: session or request are invalid")
+         ctx.findComet(theType, name, kids, S.attrsFlattenToMap).map {
+           c => {
+             // Update the view on each page load in dev mode
+             // this make development easier
+             if (Props.devMode) {
+               c ! UpdateDefaultXml(kids)
+             }
+             
+             (c.!?(26600L, AskRender)) match {
+               case Full(AnswerRender(response, _, when, _)) if c.hasOuter =>
+                 buildSpan(Empty, c.buildSpan(when, response.inSpan) ++ response.outSpan, c, c.uniqueId+"_outer")
+               
+               case Full(AnswerRender(response, _, when, _)) =>
+                 c.buildSpan(when, response.inSpan)
+               
+               case _ => 
+                 throw new CometTimeoutException("type: "+theType+" name: "+name)
+             }}} openOr {
+               throw new CometNotFoundException("type: "+theType+" name: "+name)
+             }
+         
+       } catch {
+         case e: SnippetFailureException => throw e
+         case e: Exception => logger.error("Failed to find a comet actor", e); kids
+       }
+    }) openOr {
+      throw new CometNotFoundException("Session not found. type: "+theType+" name: "+name)
+    }
   }
 }
+
+class CometTimeoutException(msg: String) extends SnippetFailureException(msg) {
+  def snippetFailure: LiftRules.SnippetFailures.Value = 
+    LiftRules.SnippetFailures.CometTimeout
+}
+
+class CometNotFoundException(msg: String) extends SnippetFailureException(msg) {
+  def snippetFailure: LiftRules.SnippetFailures.Value = 
+    LiftRules.SnippetFailures.CometNotFound
+}
+
+
 
 }
 }

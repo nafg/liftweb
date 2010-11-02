@@ -4,11 +4,11 @@
 
   <parent>
     <groupId>net.liftweb</groupId>
-    <artifactId>examples</artifactId>
-    <version>2.0-SNAPSHOT</version>
+    <artifactId>examples_2.8.0</artifactId>
+    <version>2.2-SNAPSHOT</version>
   </parent>
 
-  <artifactId>JPADemo-Master</artifactId>
+  <artifactId>JPADemo-Master_2.8.0</artifactId>
   <description>JPA tutorial master project</description>
   <name>JPA Demo Master</name>
   <inceptionYear>2007</inceptionYear>
@@ -34,21 +34,33 @@
   <!-- Master properties (inherited by modules) -->
   <dependencies>
     <dependency>
-      <groupId>org.scala-lang</groupId>
-      <artifactId>scala-compiler</artifactId>
-      <version>${scala.version}</version>
-      <scope>test</scope>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>lift-jpa_${scala.version}</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.scala-lang</groupId>
-      <artifactId>scala-library</artifactId>
-      <version>${scala.version}</version>
+      <groupId>log4j</groupId>
+      <artifactId>log4j</artifactId>
+      <version>1.2.16</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-log4j12</artifactId>
+      <version>1.6.1</version>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.derby</groupId>
       <artifactId>derby</artifactId>
       <scope>runtime</scope>
       <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.scala-lang</groupId>
+      <artifactId>scala-compiler</artifactId>
+      <version>${scala.version}</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
@@ -65,7 +77,7 @@
       <plugin>
         <groupId>org.scala-tools</groupId>
         <artifactId>maven-scala-plugin</artifactId>
-        <version>2.9</version>
+        <version>2.14.3</version>
         <executions>
           <execution>
             <goals>
@@ -81,7 +93,6 @@
           <args>
             <!-- arg>-unchecked</arg -->
             <arg>-deprecation</arg>
-            <arg>-Xno-varargs-conversion</arg>
           </args>
         </configuration>
       </plugin>

@@ -3,11 +3,20 @@
 
   <parent>
     <groupId>net.liftweb</groupId>
-    <artifactId>examples</artifactId>
-    <version>2.0-SNAPSHOT</version>
+    <artifactId>examples_2.8.0</artifactId>
+    <version>2.2-SNAPSHOT</version>
   </parent>
 
-  <artifactId>http-authentication</artifactId>
+  <artifactId>http-authentication_2.8.0</artifactId>
   <packaging>war</packaging>
   <name>HTTP Authentication example</name>
+
+  <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>lift-webkit_${scala.version}</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+
 </project>

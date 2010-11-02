@@ -129,17 +129,27 @@ trait OneToMany[K,T<:KeyedMapper[K, T]] extends KeyedMapper[K,T] { this: T =>
      */
     def all = delegate
 
-
-    def +=(elem: O) {
+    // 2.8: return this
+    def +=(elem: O) = {
       delegate = delegate ++ List(own(elem))
+      this
     }
-    def readOnly = all
+    // 2.7
+    //def readOnly = all
     def length = delegate.length
-    def elements = delegate.elements
+    // 2.7
+    //def elements = delegate.elements
+    // 2.8
+    def iterator = delegate.iterator
     def apply(n: Int) = delegate(n)
 
-
-    def +:(elem: O) = {
+    // 2.7
+    /* def +:(elem: O) = {
+      delegate ::= own(elem)
+      this
+    } */
+    // 2.8
+    def +=:(elem: O) = {
       delegate ::= own(elem)
       this
     }
@@ -147,7 +157,10 @@ trait OneToMany[K,T<:KeyedMapper[K, T]] extends KeyedMapper[K,T] { this: T =>
     override def indexOf[B >: O](e: B): Int =
       delegate.findIndexOf(e.asInstanceOf[AnyRef].eq)
 
-    def insertAll(n: Int, iter: Iterable[O]) {
+    // 2.7
+    // def insertAll(n: Int, iter: Iterable[O]) {
+    // 2.8
+    def insertAll(n: Int, iter: Traversable[O]) {
       val (before, after) = delegate.splitAt(n)
       iter foreach own
       delegate = before ++ iter ++ after

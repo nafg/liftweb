@@ -1,28 +1,33 @@
 /*
-* Copyright 2010 WorldWide Conferencing, LLC
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2010 WorldWide Conferencing, LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package net.liftweb {
-package mongodb.record {
+package mongodb {
+package record {
 
-import java.util.Calendar
+import java.util.{Calendar, UUID}
 import java.util.regex.Pattern
 
-import scala.collection.jcl.Conversions._
+import scala.collection.JavaConversions._
 
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.json.Formats
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.mongodb._
+import net.liftweb.mongodb.record.field._
 import net.liftweb.record.{MetaRecord, Record}
 import net.liftweb.record.field._
 
@@ -34,8 +39,6 @@ trait MongoMetaRecord[BaseRecord <: MongoRecord[BaseRecord]]
   extends MetaRecord[BaseRecord] with MongoMeta[BaseRecord] {
 
   self: BaseRecord =>
-
-  //def afterCommit: List[BaseRecord => Unit] = Nil
 
   /**
   * Delete the instance from backing store
@@ -73,6 +76,11 @@ trait MongoMetaRecord[BaseRecord <: MongoRecord[BaseRecord]]
   def find(oid: ObjectId): Box[BaseRecord] = find(new BasicDBObject("_id", oid))
 
   /**
+  * Find a single row by a UUID
+  */
+  def find(uid: UUID): Box[BaseRecord] = find(new BasicDBObject("_id", uid))
+
+  /**
   * Find a single row by Any
   * This doesn't work as find because we need JObject's to be implicitly converted.
   *
@@ -82,10 +90,11 @@ trait MongoMetaRecord[BaseRecord <: MongoRecord[BaseRecord]]
   /**
   * Find a single row by a String id
   */
-  def find(s: String): Box[BaseRecord] = ObjectId.isValid(s) match {
-    case true => find(new BasicDBObject("_id", new ObjectId(s)))
-    case false => find(new BasicDBObject("_id", s))
-  }
+  def find(s: String): Box[BaseRecord] =
+    if (ObjectId.isValid(s))
+      find(new BasicDBObject("_id", new ObjectId(s)))
+    else
+      find(new BasicDBObject("_id", s))
 
   /**
   * Find a single row by an Int id
@@ -118,10 +127,21 @@ trait MongoMetaRecord[BaseRecord <: MongoRecord[BaseRecord]]
   * Find all rows using a DBObject query.
   */
   def findAll(qry: DBObject, sort: Option[DBObject], opts: FindOption*): List[BaseRecord] = {
+    findAll(sort, opts:_*) { coll => coll.find(qry) }
+  }
+
+  /**
+   * Find all rows and retrieve only keys fields.
+   */
+  def findAll(qry: DBObject, keys: DBObject, sort: Option[DBObject], opts: FindOption*): List[BaseRecord] = {
+    findAll(sort, opts:_*) { coll => coll.find(qry, keys) }
+  }
+
+  private def findAll(sort: Option[DBObject], opts: FindOption*)(f: (DBCollection) => DBCursor): List[BaseRecord] = {
     val findOpts = opts.toList
 
     MongoDB.useCollection(mongoIdentifier, collectionName) ( coll => {
-      val cur = coll.find(qry).limit(
+      val cur = f(coll).limit(
         findOpts.find(_.isInstanceOf[Limit]).map(x => x.value).getOrElse(0)
       ).skip(
         findOpts.find(_.isInstanceOf[Skip]).map(x => x.value).getOrElse(0)
@@ -130,6 +150,14 @@ trait MongoMetaRecord[BaseRecord <: MongoRecord[BaseRecord]]
       // The call to toArray retrieves all documents and puts them in memory.
       cur.toArray.flatMap(dbo => fromDBObject(dbo).toList).toList
     })
+  }
+
+  /**
+   * Find all rows and retrieve only keys fields.
+   */
+  def findAll(qry: JObject, keys: JObject, sort: Option[JObject], opts: FindOption*): List[BaseRecord] = {
+    val s = sort.map(JObjectParser.parse(_))
+    findAll(JObjectParser.parse(qry), JObjectParser.parse(keys), s, opts :_*)
   }
 
   /**
@@ -193,7 +221,7 @@ trait MongoMetaRecord[BaseRecord <: MongoRecord[BaseRecord]]
         coll => coll.save(inst.asDBObject)
       }
   }
-  
+
   def save(inst: BaseRecord): Boolean = save(inst, false)
 
   /*
@@ -209,7 +237,7 @@ trait MongoMetaRecord[BaseRecord <: MongoRecord[BaseRecord]]
   def insertAll(insts: List[BaseRecord]): Unit = {
     insts.foreach(inst => foreachCallback(inst, _.beforeSave))
     MongoDB.useCollection(mongoIdentifier, collectionName) ( coll =>
-      coll.insert(insts.map(_.asDBObject).toArray)
+      coll.insert(insts.map(_.asDBObject).toArray:_*)
     )
     insts.foreach(inst => foreachCallback(inst, _.afterSave))
   }
@@ -247,16 +275,25 @@ trait MongoMetaRecord[BaseRecord <: MongoRecord[BaseRecord]]
         case Full(field) if (field.optional_? && field.valueBox.isEmpty) => // don't add to DBObject
         /* FIXME: Doesn't work
         case Full(field) if field.isInstanceOf[CountryField[Any]] =>
-          dbo.put(f.name, field.asInstanceOf[CountryField[Any]].value)
+          dbo.add(f.name, field.asInstanceOf[CountryField[Any]].value)
         */
+        case Full(field: EnumTypedField[Enumeration]) =>
+          field.asInstanceOf[EnumTypedField[Enumeration]].valueBox foreach {
+            v => dbo.add(f.name, v.id)
+          }
+        case Full(field: EnumNameTypedField[Enumeration]) =>
+          field.asInstanceOf[EnumNameTypedField[Enumeration]].valueBox foreach {
+            v => dbo.add(f.name, v.toString)
+          }
         case Full(field: MongoFieldFlavor[Any]) =>
           dbo.add(f.name, field.asInstanceOf[MongoFieldFlavor[Any]].asDBObject)
-        case Full(field) => field.value.asInstanceOf[AnyRef] match {
+        case Full(field) => field.valueBox foreach (_.asInstanceOf[AnyRef] match {
+          case null => dbo.add(f.name, null)
           case x if primitive_?(x.getClass) => dbo.add(f.name, x)
+          case x if mongotype_?(x.getClass) => dbo.add(f.name, x)
           case x if datetype_?(x.getClass) => dbo.add(f.name, datetype2dbovalue(x))
-          case x if mongotype_?(x.getClass) => dbo.add(f.name, mongotype2dbovalue(x, formats))
           case o => dbo.add(f.name, o.toString)
-        }
+        })
         case _ => //dbo.markAsPartialObject // so we know it's only partial
       }
     }
@@ -264,7 +301,7 @@ trait MongoMetaRecord[BaseRecord <: MongoRecord[BaseRecord]]
   }
 
   /**
-  * Creates a new record from a then sets the fields with the given DBObject.
+  * Creates a new record, then sets the fields with the given DBObject.
   *
   * @param dbo - the DBObject
   * @return Box[BaseRecord]
@@ -293,5 +330,6 @@ trait MongoMetaRecord[BaseRecord <: MongoRecord[BaseRecord]]
 
 }
 
+}
 }
 }

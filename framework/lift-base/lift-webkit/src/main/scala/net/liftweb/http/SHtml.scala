@@ -612,6 +612,27 @@ object SHtml {
     }
   }
 
+  /**
+   * Make a set of Ajax radio buttons.  When the buttons are pressed,
+   * the function is called
+   *
+   * @param opts -- The possible values.  These are not revealed to the browser
+   * @param deflt -- the default button
+   * @param ajaxFunc -- the function to invoke when the button is pressed
+   */
+  def ajaxRadio[T](opts: Seq[T], deflt: Box[T], ajaxFunc: T => JsCmd, attrs: (String, String)*): ChoiceHolder[T] = {
+    val groupName = Helpers.nextFuncName
+    val itemList = opts.map{
+      v => {
+        ChoiceItem(v, attrs.foldLeft(<input type="radio" name={groupName}
+                                     value={Helpers.nextFuncName}/>)(_ % _) % 
+                   checked(deflt == Full(v)) %
+                   ("onclick" -> ajaxCall(Str(""), 
+                                          ignore => ajaxFunc(v))._2.toJsCmd))
+      }
+    }
+    ChoiceHolder(itemList)
+  }
 
   /**
    * Create a select box based on the list with a default value and the function
@@ -735,8 +756,10 @@ object SHtml {
   /**
    * create an anchor tag around a body
    *
+   * @to - the target
    * @param func - the function to invoke when the link is clicked
    * @param body - the NodeSeq to wrap in the anchor tag
+   * @attrs - the (optional) attributes for the HTML element
    */
   def link(to: String, func: () => Any, body: NodeSeq,
            attrs: (String, String)*): Elem = {
@@ -805,6 +828,30 @@ object SHtml {
   def hidden(func: (String) => Any, defaultlValue: String, attrs: (String, String)*): Elem =
     makeFormElement("hidden", SFuncHolder(func), attrs: _*) % ("value" -> defaultlValue)
 
+  /**
+   * Create an HTML button with strOrNodeSeq as the body.  The
+   * button will be type submit.
+   *
+   * @param strOrNodeSeq -- the String or NodeSeq (either will work just fine)
+   * to put into the body of the button
+   * @param func -- the function to execute when the form containing the button
+   * is posted
+   * @param attrs -- the attributes to append to the button
+   * @return a button HTML Element b
+   */
+  def button(strOrNodeSeq: StringOrNodeSeq, func: () => Any, attrs: (String, String)*): Elem = {
+    def doit: Elem = {
+      attrs.foldLeft(fmapFunc(contextFuncBuilder(func))(name =>
+        <button type="submit" name={name} value="_">{
+          strOrNodeSeq.nodeSeq}</button>))(_ % _)
+    }
+
+    _formGroup.is match {
+      case Empty => formGroup(1)(doit)
+      case _ => doit
+    }
+  }
+             
   /**
    * Generates a form submission button.
    *
@@ -1097,11 +1144,12 @@ object SHtml {
     }
   }
 
-  def fileUpload(func: FileParamHolder => Unit): Elem = {
-    val f2: FileParamHolder => Unit = fp =>
-            if (fp.file != null && fp.file.length > 0) func(fp)
-
-    fmapFunc(BinFuncHolder(f2))(name => <input type="file" name={name}/>)
+  def fileUpload(func: FileParamHolder => Unit, attrs: (String, String)*): Elem = {
+    val f2: FileParamHolder => Unit =
+      fp => if (fp.file != null && fp.file.length > 0) func(fp)
+    fmapFunc(BinFuncHolder(f2)) { name => 
+      attrs.foldLeft(<input type="file" name={ name }/>) { _ % _ }
+    }
   }
 
   /** Holds a form control as HTML along with some user defined value */

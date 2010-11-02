@@ -1,20 +1,23 @@
 /*
-* Copyright 2010 WorldWide Conferencing, LLC
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2010 WorldWide Conferencing, LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package net.liftweb {
 package mongodb {
 
-import java.util.Date
+import java.util.{Date, UUID}
 import java.util.regex.Pattern
 
 import org.specs.Specification
@@ -29,28 +32,7 @@ import com.mongodb.{BasicDBObject, BasicDBObjectBuilder, DBObject}
 
 class MongoDirectExamplesTest extends JUnit4(MongoDirectExamples)
 
-object MongoDirectExamples extends Specification {
-
-  doBeforeSpec { 
-    // define the db
-    MongoDB.defineDb(DefaultMongoIdentifier, MongoAddress(MongoHost(), "test_direct"))
-  }
-  
-  def isMongoRunning: Boolean = {
-    try {
-      MongoDB.use(DefaultMongoIdentifier) ( db => { db.getLastError } )
-      true
-    }
-    catch {
-      case e => false
-    }
-  }
-
-  def checkMongoIsRunning = isMongoRunning must beEqualTo(true).orSkipExample
-
-  import com.mongodb.util.JSON // Mongo parser/serializer
-
-  val debug = false
+object MongoDirectExamples extends Specification with MongoTestKit {
 
   def date(s: String) = DefaultFormats.dateFormat.parse(s).get
 
@@ -140,12 +122,6 @@ object MongoDirectExamples extends Specification {
 
       // use a cursor to get all docs
       val cur = coll.find
-
-      // do something with the cursor
-      while(cur.hasNext) {
-        val dbo = cur.next
-        if (debug) println(dbo)
-      }
 
       cur.count must_== 100
 
@@ -276,14 +252,14 @@ object MongoDirectExamples extends Specification {
       coll.update(new BasicDBObject("name", "None"), o2, false, false)
       db.getLastError.get("updatedExisting") must_== false
       db.getLastError.get("n") must_== 0
-      
+
       // regex query example
       val key = "name"
       val regex = "^Mongo"
       val cur = coll.find(
           BasicDBObjectBuilder.start.add(key, Pattern.compile(regex)).get)
       cur.count must_== 2
-      
+
       // use regex and another dbobject
       val cur2 = coll.find(
           BasicDBObjectBuilder.start.add(key, Pattern.compile(regex)).add("count", 1).get)
@@ -299,16 +275,21 @@ object MongoDirectExamples extends Specification {
     })
   }
 
-  doAfterSpec {
-    if (!debug && isMongoRunning) {
-      // drop the database
-      MongoDB.use {
-        db => db.dropDatabase
-      }
-    }
+  "UUID Example" in {
 
-    // clear the mongo instances
-    MongoDB.close
+    checkMongoIsRunning
+
+    MongoDB.useCollection("examples.uuid") { coll =>
+      val uuid = UUID.randomUUID
+      val dbo = new BasicDBObject("_id", uuid).append("name", "dbo")
+      coll.save(dbo)
+
+      val qry = new BasicDBObject("_id", uuid)
+      val dbo2 = coll.findOne(qry)
+
+      dbo2.get("_id") must_== dbo.get("_id")
+      dbo2.get("name") must_== dbo.get("name")
+    }
   }
 }
 

@@ -33,7 +33,7 @@ import js._
 abstract class MappedEnum[T<:Mapper[T], ENUM <: Enumeration](val fieldOwner: T, val enum: ENUM) extends MappedField[ENUM#Value, T] {
   private var data: ENUM#Value = defaultValue
   private var orgData: ENUM#Value = defaultValue
-  def defaultValue: ENUM#Value = enum.elements.next
+  def defaultValue: ENUM#Value = enum.iterator.next
   def dbFieldClass = classOf[ENUM#Value]
 
   /**

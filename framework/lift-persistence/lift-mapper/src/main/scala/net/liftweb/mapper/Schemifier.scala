@@ -65,8 +65,13 @@ object Schemifier extends Loggable {
 
   def schemify(performWrite: Boolean, logFunc: (=> AnyRef) => Unit, dbId: ConnectionIdentifier, stables: BaseMetaMapper*): List[String] = {
     val tables = stables.toList
-    DB.use(dbId) {
-      con =>
+    DB.use(dbId) { con =>
+      // Some databases (Sybase) don't like doing transactional DDL, so we disable transactions
+      if (con.driverType.schemifierMustAutoCommit_? && !con.connection.getAutoCommit()) {
+        con.connection.commit
+        con.connection.setAutoCommit(true)
+      }
+
       val connection = con // SuperConnection(con)
       val driver = DriverType.calcDriver(connection)
       val actualTableNames = new HashMap[String, String]
@@ -312,7 +317,7 @@ object Schemifier extends Loggable {
         val md = connection.getMetaData
         // val rs = md.getCrossReference(null, null,otherTable , null, null, myTable)
         var foundIt = false
-        using(md.getExportedKeys(null, getDefaultSchemaName(connection), myTable))(rs =>
+        using(md.getImportedKeys(null, getDefaultSchemaName(connection), myTable))(rs =>
           //val rs = md.getCrossReference(null, null,myTable , null, null, otherTable)
           while (!foundIt && rs.next) {
             val pkName = rs.getString(4)

@@ -21,58 +21,33 @@ package field {
 import _root_.scala.xml._
 import _root_.net.liftweb.util._
 import _root_.net.liftweb.common._
+import _root_.net.liftweb.proto._
 import _root_.net.liftweb.http.{S}
 import _root_.java.util.regex._
 import Helpers._
 import S._
 
-
 object EmailField {
-  val emailPattern = Pattern.compile("^[a-z0-9._%-]+@(?:[a-z0-9-]+\\.)+[a-z]{2,4}$")
+  def emailPattern = ProtoRules.emailRegexPattern.vend
+
   def validEmailAddr_?(email: String): Boolean = emailPattern.matcher(email).matches
 }
 
-class EmailField[OwnerType <: Record[OwnerType]](rec: OwnerType, maxLength: Int) extends StringField[OwnerType](rec, maxLength) {
-
-  private def validateEmail(emailBox: Box[String]): List[FieldError] =
-    emailBox match {
+trait EmailTypedField extends TypedField[String] {
+  private def validateEmail(emailValue: ValueType): List[FieldError] =
+    toBoxMyType(emailValue) match {
       case Full(email) if EmailField.validEmailAddr_?(email) => Nil
       case _ => Text(S.??("invalid.email.address"))
     }
 
-  override def validators = validateEmail _ :: Nil
+  override def validations = validateEmail _ :: Nil
+}  
 
-}
+class EmailField[OwnerType <: Record[OwnerType]](rec: OwnerType, maxLength: Int)
+  extends StringField[OwnerType](rec, maxLength) with EmailTypedField
 
-
-import _root_.java.sql.{ResultSet, Types}
-import _root_.net.liftweb.mapper.{DriverType}
-
-/**
- * An email field holding DB related logic
- */
-class DBEmailField[OwnerType <: DBRecord[OwnerType]](rec: OwnerType, maxLength: Int) extends
-  EmailField[OwnerType](rec, maxLength) with JDBCFieldFlavor[String]{
-
-  def this(rec: OwnerType, maxLength: Int, value: String) = {
-    this(rec, maxLength)
-    set(value)
-  }
-
-  def this(rec: OwnerType, value: String) = {
-    this(rec, 100)
-    set(value)
-  }
-
-  def targetSQLType = Types.VARCHAR
-
-  /**
-   * Given the driver type, return the string required to create the column in the database
-   */
-  def fieldCreatorString(dbType: DriverType, colName: String): String = colName+" VARCHAR("+maxLength+")"
-
-  def jdbcFriendly(field : String) : String = value
-}
+class OptionalEmailField[OwnerType <: Record[OwnerType]](rec: OwnerType, maxLength: Int)
+  extends OptionalStringField[OwnerType](rec, maxLength) with EmailTypedField
 
 }
 }

@@ -66,7 +66,10 @@ object Menu extends DispatchSnippet {
    *   <li>inner_tag - the tag for the inner XML element (li by default)</li>
    *   <li>li_path - Adds the specified attribute to the current page’s breadcrumb path. The
    *       breadcrumb path is the set of menu items leading to this one.</li>
-   *   <li>linkToSelf - false by default, but available as 'true' to generate link to the current page</li>
+   *   <li>linkToSelf - False by default, but available as 'true' to generate link to the current page</li>
+   *   <li>level - Controls the level of menus that will be output. "0" is the top-level menu, "1" is children of
+   *       the current menu item, and so on. Child menus will be expanded unless the "expand" attribute is set to <pre>false</pre>.</li>
+   *   <li>expand - Controls whether or not to expand child menus. Defaults to <pre>true</pre>.</li>
    * </ul>
    *
    * <p>For a simple, default menu, simply add</p>
@@ -130,29 +133,34 @@ object Menu extends DispatchSnippet {
         def buildANavItem(i: MenuItem) = {
           i match {
             case m@MenuItem(text, uri, kids, _, _, _) if m.placeholder_? =>
-              Elem(null, innerTag, Null, TopScope,
-                <xml:group> <span>{text}</span>{ifExpand(buildUlLine(kids))}</xml:group>) %
-                  (if (m.path) S.prefixedAttrsToMetaData("li_path", liMap) else Null) %
-                  (if (m.current) S.prefixedAttrsToMetaData("li_item", liMap) else Null)
+              Helpers.addCssClass(i.cssClass,
+                                  Elem(null, innerTag, Null, TopScope,
+                                       <xml:group> <span>{text}</span>{ifExpand(buildUlLine(kids))}</xml:group>) %
+                                  (if (m.path) S.prefixedAttrsToMetaData("li_path", liMap) else Null) %
+                                  (if (m.current) S.prefixedAttrsToMetaData("li_item", liMap) else Null))
 
             case MenuItem(text, uri, kids, true, _, _) if expandAll || linkToSelf =>
-              Elem(null, innerTag, Null, TopScope,
-                <xml:group> <a href={uri}>{text}</a>{ifExpand(buildUlLine(kids))}</xml:group>) %
-                  S.prefixedAttrsToMetaData("li_item", liMap)
+              Helpers.addCssClass(i.cssClass,
+                                  Elem(null, innerTag, Null, TopScope,
+                                       <xml:group> <a href={uri}>{text}</a>{ifExpand(buildUlLine(kids))}</xml:group>) %
+                                  S.prefixedAttrsToMetaData("li_item", liMap))
 
             case MenuItem(text, uri, kids, true, _, _) =>
-              Elem(null, innerTag, Null, TopScope,
-                <xml:group> <span>{text}</span>{ifExpand(buildUlLine(kids))}</xml:group>) %
-                  S.prefixedAttrsToMetaData("li_item", liMap)
+              Helpers.addCssClass(i.cssClass,
+                                  Elem(null, innerTag, Null, TopScope,
+                                       <xml:group> <span>{text}</span>{ifExpand(buildUlLine(kids))}</xml:group>) %
+                                  S.prefixedAttrsToMetaData("li_item", liMap))
 
             case MenuItem(text, uri, kids, _, true, _) =>
-              Elem(null, innerTag, Null, TopScope,
-                <xml:group> <a href={uri}>{text}</a>{ifExpand(buildUlLine(kids))}</xml:group>) %
-                  S.prefixedAttrsToMetaData("li_path", liMap)
+              Helpers.addCssClass(i.cssClass,
+                                  Elem(null, innerTag, Null, TopScope,
+                                       <xml:group> <a href={uri}>{text}</a>{ifExpand(buildUlLine(kids))}</xml:group>) %
+                                  S.prefixedAttrsToMetaData("li_path", liMap))
 
             case MenuItem(text, uri, kids, _, _, _) =>
-              Elem(null, innerTag, Null, TopScope,
-                <xml:group> <a href={uri}>{text}</a>{ifExpand(buildUlLine(kids))}</xml:group>) % li
+              Helpers.addCssClass(i.cssClass,
+                                  Elem(null, innerTag, Null, TopScope,
+                                       <xml:group> <a href={uri}>{text}</a>{ifExpand(buildUlLine(kids))}</xml:group>) % li)
           }
         }
 
@@ -207,6 +215,7 @@ object Menu extends DispatchSnippet {
               "uri" -> uri.toString,
               "children" -> buildItems(kids),
               "current" -> current,
+              "cssClass" -> (in.cssClass openOr ""),
               "placeholder" -> in.placeholder_?,
               "path" -> path)
     }
@@ -285,7 +294,8 @@ object Menu extends DispatchSnippet {
          loc <- siteMap.locForGroup(group);
          link <- loc.createDefaultLink;
          linkText <- loc.linkText) yield {
-      val a = <a href={link}>{linkText}</a> % attrs
+      val a = Helpers.addCssClass(loc.cssClassForMenuItem,
+                                  <a href={link}>{linkText}</a> % attrs)
 
       Group(bind("menu", toBind, "bind" -> a))
     }
@@ -322,31 +332,49 @@ object Menu extends DispatchSnippet {
    * &lt;lift:Menu.item name="b" a:style="color: red;" /&gt;
    * </pre>
    *
+   * <p>The param attribute may be used with Menu Locs that are
+   * CovertableLoc to parameterize the link</p>
+   *
    * <p>Normally, the Menu item is not shown on pages that match its Menu's Loc. You can
    * set the "donthide" attribute on the tag to force it to show text only (same text as normal,
    * but not in an anchor tag)</p>
    *
    */
-  def item(text: NodeSeq): NodeSeq =
-  for (name <- S.attr("name").toList;
-       request <- S.request.toList;
-       loc <- request.location.toList)
-  yield {
-    if (loc.name != name) {
-      val itemLink = SiteMap.buildLink(name, text) match {
-        case e : Elem => e % S.prefixedAttrsToMetaData("a")
-        case x => x
-      }
-      Group(itemLink)
-    } else if (S.attr("donthide").isDefined) {
-      // Use the provided text if it's non-empty, otherwise, default to Loc's LinkText
-      if (text.length > 0) {
-        Group(text)
-      } else {
-        Group(loc.linkText openOr Text(loc.name))
-      }
-    } else {
-      Text("")
+  def item(text: NodeSeq): NodeSeq = {
+    for {
+      name <- S.attr("name").toList
+    } yield {
+      type T = Q forSome {type Q}
+      (S.request.flatMap(_.location), S.attr("param"), 
+       SiteMap.findAndTestLoc(name)) match {
+         case (_, Full(param), Full(loc: ConvertableLoc[T])) => {
+           (for {
+             pv <- loc.convert(param)
+             link <- loc.createLink(pv)
+           } yield 
+             Helpers.addCssClass(loc.cssClassForMenuItem,
+                                 <a href={link}></a> % 
+                                 S.prefixedAttrsToMetaData("a"))) openOr
+           Text("")
+         }
+         
+         case (Full(loc), _, _) if loc.name == name => {
+           if (S.attr("donthide").isEmpty) Text("")
+           if (!text.isEmpty) Group(text)
+           else Group(loc.linkText openOr Text(loc.name))
+         }
+
+         case (Full(loc), _, _) => {
+           Group(SiteMap.buildLink(name, text) match {
+             case e : Elem => 
+               Helpers.addCssClass(loc.cssClassForMenuItem,
+                                   e % S.prefixedAttrsToMetaData("a"))
+             case x => x
+           })
+         }
+
+         case _ => Text("")
+       }
     }
   }
 }

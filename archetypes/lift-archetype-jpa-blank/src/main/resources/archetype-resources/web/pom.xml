@@ -29,7 +29,7 @@
     </dependency>
     <dependency>
       <groupId>net.liftweb</groupId>
-      <artifactId>lift-jpa</artifactId>
+      <artifactId>lift-jpa_$scalaVersion</artifactId>
       <version>$liftVersion</version>
     </dependency>
     <dependency>
@@ -42,7 +42,7 @@
     <dependency>
       <groupId>org.mortbay.jetty</groupId>
       <artifactId>jetty</artifactId>
-      <version>[6.1.6,7.0)</version>
+      <version>6.1.25</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -52,7 +52,7 @@
       <plugin>
         <groupId>org.mortbay.jetty</groupId>
         <artifactId>maven-jetty-plugin</artifactId>
-        <version>6.1.22</version>
+        <version>6.1.25</version>
         <configuration>
           <contextPath>/</contextPath>
           <scanIntervalSeconds>5</scanIntervalSeconds>

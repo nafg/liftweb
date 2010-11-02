@@ -31,7 +31,7 @@ private[http] trait LiftMerge {
   /**
    * Manages the merge phase of the rendering pipeline
    */
-  private[http] def merge(xhtml: NodeSeq, req: Req): Node = {
+  def merge(xhtml: NodeSeq, req: Req): Node = {
     val snippetHashs: HashMap[String, Box[NodeSeq]] = this.deferredSnippets.is
     val waitUntil = millis + LiftRules.lazySnippetTimeout.vend.millis
     val stripComments: Boolean = LiftRules.stripComments.vend
@@ -39,7 +39,7 @@ private[http] trait LiftMerge {
     def waitUntilSnippetsDone() {
       val myMillis = millis
       snippetHashs.synchronized {
-        if (myMillis >= waitUntil || snippetHashs.isEmpty || !snippetHashs.values.contains(Empty)) ()
+        if (myMillis >= waitUntil || snippetHashs.isEmpty || !snippetHashs.values.toIterator.contains(Empty)) ()
         else {
           snippetHashs.wait(waitUntil - myMillis)
           waitUntilSnippetsDone()
@@ -125,7 +125,7 @@ private[http] trait LiftMerge {
                   // if it's a deferred node, grab it from the deferred list
                   case e: Elem if e.label == "node" && e.prefix == "lift_deferred" =>
                     for{
-                      attr <- e.attributes("id").firstOption.map(_.text).toList
+                      attr <- e.attributes("id").headOption.map(_.text).toList
                       nodes <- processedSnippets.get(attr).toList
                       node <- _fixHtml(nodes, inHtml, inHead, justHead, inBody, justBody, bodyHead, bodyTail, doMergy)
                     } yield node
@@ -203,7 +203,7 @@ private[http] trait LiftMerge {
         bodyChildren += nl
       }
 
-      if (LiftRules.enableLiftGC) {
+      if (LiftRules.enableLiftGC && stateful_?) {
         import js._
         import JsCmds._
         import JE._

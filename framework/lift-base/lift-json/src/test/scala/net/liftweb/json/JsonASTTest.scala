@@ -18,7 +18,7 @@ package net.liftweb {
 package json {
 
 import _root_.org.scalacheck._
-import _root_.org.scalacheck.Prop.forAll
+import _root_.org.scalacheck.Prop.{forAll, forAllNoShrink}
 import _root_.org.specs.Specification
 import _root_.org.specs.runner.{Runner, JUnit}
 import _root_.org.specs.ScalaCheck
@@ -33,15 +33,15 @@ object JsonASTSpec extends Specification with JValueGen with ScalaCheck {
   }
 
   "Functor composition" in {
-    val compositionProp = (json: JValue, fa: JValue => JValue, fb: JValue => JValue) => 
-      json.map(fb).map(fa) == json.map(fa compose fb) 
+    val compositionProp = (json: JValue, fa: JValue => JValue, fb: JValue => JValue) =>
+      json.map(fb).map(fa) == json.map(fa compose fb)
 
     forAll(compositionProp) must pass
   }
 
   "Monoid identity" in {
     val identityProp = (json: JValue) => (json ++ JNothing == json) && (JNothing ++ json == json)
-    forAll(identityProp) must pass    
+    forAll(identityProp) must pass
   }
 
   "Monoid associativity" in {
@@ -60,8 +60,8 @@ object JsonASTSpec extends Specification with JValueGen with ScalaCheck {
   }
 
   "Diff identity" in {
-    val identityProp = (json: JValue) => 
-      (json diff JNothing) == Diff(JNothing, JNothing, json) && 
+    val identityProp = (json: JValue) =>
+      (json diff JNothing) == Diff(JNothing, JNothing, json) &&
       (JNothing diff json) == Diff(JNothing, json, JNothing)
 
     forAll(identityProp) must pass
@@ -83,7 +83,7 @@ object JsonASTSpec extends Specification with JValueGen with ScalaCheck {
   "Diff result is same when fields are reordered" in {
     val reorderProp = (x: JObject) => (x diff reorderFields(x)) == Diff(JNothing, JNothing, JNothing)
     forAll(reorderProp) must pass
-  } 
+  }
 
   "Remove all" in {
     val removeAllProp = (x: JValue) => (x remove { _ => true }) == JNothing
@@ -96,16 +96,15 @@ object JsonASTSpec extends Specification with JValueGen with ScalaCheck {
   }
 
   "Remove removes only matching elements (in case of a field, its value is set to JNothing)" in {
-    val removeProp = (json: JValue, x: Class[_ <: JValue]) => {
+    forAllNoShrink(genJValue, genJValueClass) { (json: JValue, x: Class[_ <: JValue]) => {
       val removed = json remove typePredicate(x)
       val Diff(c, a, d) = json diff removed
       val elemsLeft = removed filter {
         case JField(_, JNothing) => false
-        case _ => true 
+        case _ => true
       }
       c == JNothing && a == JNothing && elemsLeft.forall(_.getClass != x)
-    }
-    forAll(removeProp) must pass
+    }} must pass
   }
 
   "Replace one" in {
@@ -160,7 +159,6 @@ object JsonASTSpec extends Specification with JValueGen with ScalaCheck {
 
   implicit def arbJValue: Arbitrary[JValue] = Arbitrary(genJValue)
   implicit def arbJObject: Arbitrary[JObject] = Arbitrary(genObject)
-  implicit def arbJValueClass: Arbitrary[Class[_ <: JValue]] = Arbitrary(genJValueClass)
 }
 
 }

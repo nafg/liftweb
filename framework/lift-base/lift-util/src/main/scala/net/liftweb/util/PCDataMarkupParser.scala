@@ -17,12 +17,13 @@
 package net.liftweb {
 package util {
 
-import _root_.scala.xml.parsing.{MarkupParser, MarkupHandler, FatalError, ConstructingHandler, ExternalSources}
+import common._
+
+import _root_.scala.xml.parsing.{ MarkupParser, MarkupHandler, FatalError, ConstructingHandler, ExternalSources }
 import _root_.scala.xml.dtd._
 import _root_.scala.xml._
-import _root_.scala.io.{Source}
-import _root_.java.io.{InputStream}
-import common._
+import _root_.java.io.InputStream
+import scala.io.{ Codec, Source }
 
 /**
  * Utilities for simplifying use of named HTML symbols.
@@ -113,7 +114,7 @@ class PCDataXmlParser(val input: Source) extends ConstructingHandler with PCData
 
       Utility.prefix(qname) match {
         case Some("xmlns") =>
-          val prefix = qname.substring(6 /*xmlns:*/ , qname.length);
+          val prefix = qname.substring(6 /* xmlns: */ , qname.length);
           scope = new NamespaceBinding(prefix, value, scope);
 
         case Some(prefix)       =>
@@ -181,17 +182,45 @@ object PCDataXmlParser {
 
   def apply(in: InputStream): Box[NodeSeq] = {
     for {
-      source <- (tryo{Source.fromInputStream(in)} match {case Full(x) => Full(x) case _ => Empty})
+      ba <- tryo(Helpers.readWholeStream(in))
+      ret <- apply(new String(ba, "UTF-8"))
+    } yield ret
+  }
+
+  private def apply(source: Source): Box[NodeSeq] = {
+    for {
       p <- tryo{new PCDataXmlParser(source)}
       val _ = while (p.ch != '<' && p.curInput.hasNext) p.nextch
       bd <- tryo(p.document)
       doc <- Box !! bd
-    } yield doc
+    } yield (doc.children: NodeSeq)
+
   }
 
   def apply(in: String): Box[NodeSeq] = {
-    import _root_.java.io.ByteArrayInputStream
-    apply(new ByteArrayInputStream(in.getBytes("UTF-8")))
+    var pos = 0
+    val len = in.length
+    def moveToLT() {
+      while (pos < len && in.charAt(pos) != '<') {
+        pos += 1
+      }
+    }
+    
+    moveToLT()
+
+    // scan past <? ... ?>
+    if (pos + 1 < len && in.charAt(pos + 1) == '?') {
+      pos += 1
+      moveToLT()
+    }    
+
+    // scan past <!DOCTYPE ....>
+    if (pos + 1 < len && in.charAt(pos + 1) == '!') {
+      pos += 1
+      moveToLT()
+    }
+    
+    apply(Source.fromString(in.substring(pos)))
   }
 }
 
@@ -212,7 +241,7 @@ case class PCData(_data: String) extends Atom[String](_data) {
    *  @param  sb ...
    *  @return ...
    */
-  override def toString(sb: StringBuilder) = {
+  override def buildString(sb: StringBuilder) = {
     sb.append("<![CDATA[")
     sb.append(data)
     sb.append("]]>")
@@ -251,26 +280,26 @@ object AltXML {
   x match {
     case Text(str) => escape(str, sb, !convertAmp)
 
-    case c: PCData => c.toString(sb)
+    case c: PCData => c.buildString(sb)
 
-    case c: scala.xml.PCData => c.toString(sb)
+    case c: scala.xml.PCData => c.buildString(sb)
 
-    case up: Unparsed => up.toString(sb)
+    case up: Unparsed => up.buildString(sb)
 
     case a: Atom[_] if a.getClass eq classOf[Atom[_]] =>
       escape(a.data.toString, sb, !convertAmp)
 
     case c: Comment if !stripComment =>
-      c.toString(sb)
+      c.buildString(sb)
 
     case er: EntityRef if convertAmp =>
       HtmlEntities.entMap.get(er.entityName) match {
         case Some(chr) if chr.toInt >= 128 => sb.append(chr)
-        case _ => er.toString(sb)
+        case _ => er.buildString(sb)
       }
 
     case x: SpecialNode =>
-      x.toString(sb)
+      x.buildString(sb)
 
     case g: Group =>
       for (c <- g.nodes)
@@ -279,16 +308,16 @@ object AltXML {
     case e: Elem if ((e.child eq null) || e.child.isEmpty) =>
       sb.append('<')
       e.nameToString(sb)
-      if (e.attributes ne null) e.attributes.toString(sb)
-      e.scope.toString(sb, pscope)
+      if (e.attributes ne null) e.attributes.buildString(sb)
+      e.scope.buildString(sb, pscope)
       sb.append(" />")
 
     case e: Elem =>
       // print tag with namespace declarations
       sb.append('<')
       e.nameToString(sb)
-      if (e.attributes ne null) e.attributes.toString(sb)
-      e.scope.toString(sb, pscope)
+      if (e.attributes ne null) e.attributes.buildString(sb)
+      e.scope.buildString(sb, pscope)
       sb.append('>')
       sequenceToXML(e.child, e.scope, sb, stripComment, convertAmp)
       sb.append("</")
@@ -310,14 +339,14 @@ object AltXML {
         case '\n' => sb.append('\n')
         case '\r' => sb.append('\r')
         case '\t' => sb.append('\t')
-        case c   => 
+        case c   =>
           if (reverse) {
             HtmlEntities.revMap.get(c) match {
               case Some(str) =>
                 sb.append('&')
                 sb.append(str)
                 sb.append(';')
-              case _ => 
+              case _ =>
                 if (c >= ' ' && c != '\u0085' && !(c >= '\u007f' && c <= '\u0095')) sb.append(c)
             }
           } else
@@ -342,26 +371,26 @@ object AltXML {
   x match {
     case Text(str) => escape(str, sb, !convertAmp)
 
-    case c: PCData => c.toString(sb)
+    case c: PCData => c.buildString(sb)
 
-    case c: scala.xml.PCData => c.toString(sb)
+    case c: scala.xml.PCData => c.buildString(sb)
 
-    case up: Unparsed => up.toString(sb)
+    case up: Unparsed => up.buildString(sb)
 
     case a: Atom[_] if a.getClass eq classOf[Atom[_]] =>
       escape(a.data.toString, sb, !convertAmp)
-      
+
     case c: Comment if !stripComment =>
-      c.toString(sb)
+      c.buildString(sb)
 
     case er: EntityRef if convertAmp =>
       HtmlEntities.entMap.get(er.entityName) match {
         case Some(chr) if chr.toInt >= 128 => sb.append(chr)
-        case _ => er.toString(sb)
+        case _ => er.buildString(sb)
       }
 
     case x: SpecialNode =>
-      x.toString(sb)
+      x.buildString(sb)
 
     case g: Group =>
       for (c <- g.nodes)
@@ -371,24 +400,24 @@ object AltXML {
       && inlineTags.contains(e.label) =>
       sb.append('<')
       e.nameToString(sb)
-      if (e.attributes ne null) e.attributes.toString(sb)
-      e.scope.toString(sb, pscope)
+      if (e.attributes ne null) e.attributes.buildString(sb)
+      e.scope.buildString(sb, pscope)
       sb.append(" />")
 
     case e: Elem if ieMode && ((e.child eq null) || e.child.isEmpty) &&
       ieBadTags.contains(e.label) =>
       sb.append('<')
       e.nameToString(sb)
-      if (e.attributes ne null) e.attributes.toString(sb)
-      e.scope.toString(sb, pscope)
+      if (e.attributes ne null) e.attributes.buildString(sb)
+      e.scope.buildString(sb, pscope)
       sb.append("/>")
 
     case e: Elem =>
       // print tag with namespace declarations
       sb.append('<')
       e.nameToString(sb)
-      if (e.attributes ne null) e.attributes.toString(sb)
-      e.scope.toString(sb, pscope)
+      if (e.attributes ne null) e.attributes.buildString(sb)
+      e.scope.buildString(sb, pscope)
       sb.append('>')
       sequenceToXML(e.child, e.scope, sb, stripComment, convertAmp, ieMode)
       sb.append("</")
@@ -408,7 +437,7 @@ object AltXML {
   def sequenceToXML(children: Seq[Node], pscope: NamespaceBinding,
                     sb: StringBuilder, stripComment: Boolean,
                     convertAmp: Boolean, ieMode: Boolean): Unit = {
-    val it = children.elements
+    val it = children.iterator
     while (it.hasNext) {
       toXML(it.next, pscope, sb, stripComment, convertAmp, ieMode)
     }
@@ -423,7 +452,7 @@ object AltXML {
   def sequenceToXML(children: Seq[Node], pscope: NamespaceBinding,
                     sb: StringBuilder, stripComment: Boolean,
                     convertAmp: Boolean): Unit = {
-    val it = children.elements
+    val it = children.iterator
     while (it.hasNext) {
       toXML(it.next, pscope, sb, stripComment, convertAmp)
     }

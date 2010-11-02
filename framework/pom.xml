@@ -35,11 +35,11 @@
   -->
   <parent>
     <groupId>net.liftweb</groupId>
-    <artifactId>lift-parent</artifactId>
-    <version>2.0-SNAPSHOT</version>
+    <artifactId>lift-parent_2.8.0</artifactId>
+    <version>2.2-SNAPSHOT</version>
     <relativePath>../resources/lift-parent/pom.xml</relativePath>
   </parent>
-  <artifactId>framework</artifactId>
+  <artifactId>framework_2.8.0</artifactId>
   <packaging>pom</packaging>
 
   <!--
@@ -80,7 +80,8 @@
   </distributionManagement>
   <properties>
     <!-- vscaladoc settings -->
-    <maven.scaladoc.vscaladocVersion>1.2-SNAPSHOT</maven.scaladoc.vscaladocVersion>
+    <!-- FIXME: 280 vscaladoc isn't 2.8 ready yet -->
+    <!-- <maven.scaladoc.vscaladocVersion>1.2-m1</maven.scaladoc.vscaladocVersion> -->
     <vscaladoc.links.liftweb.baseurl>${project.basedir}/../..</vscaladoc.links.liftweb.baseurl>
     <vscaladoc.links.liftweb.pathsufix>target/site/scaladocs/</vscaladoc.links.liftweb.pathsufix>
 
@@ -171,8 +172,10 @@
           <groupId>org.scala-tools</groupId>
           <artifactId>maven-scala-plugin</artifactId>
           <configuration>
+            <aggregateDirectOnly>false</aggregateDirectOnly>
+            <forceAggregate>true</forceAggregate>
             <jvmArgs>
-              <jvmArg>-Xmx1024m</jvmArg>
+              <jvmArg>-Xmx2g</jvmArg>
               <jvmArg>-DpackageLinkDefs=file://${project.build.directory}/packageLinkDefs.properties</jvmArg>
             </jvmArgs>
           </configuration>
@@ -231,7 +234,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <version>2.6.1</version>
+        <version>2.7</version>
         <configuration>
           <detectLinks>true</detectLinks>
           <linksource>true</linksource>
@@ -283,7 +286,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-report-plugin</artifactId>
-        <version>2.5</version>
+        <version>2.6</version>
         <reportSets>
           <reportSet>
             <reports>
@@ -295,17 +298,16 @@
       <plugin>
         <groupId>org.scala-tools</groupId>
         <artifactId>maven-scala-plugin</artifactId>
-        <version>2.13.1</version>
+        <version>2.14.3</version>
         <configuration>
+          <aggregateDirectOnly>false</aggregateDirectOnly>
+          <forceAggregate>true</forceAggregate>
           <charset>${project.build.sourceEncoding}</charset>
           <!--<bottom>Copyright &#169; {inceptionYear}-{currentYear} {organizationName}. All Rights Reserved.</bottom>-->
           <jvmArgs>
-            <jvmArg>-Xmx1024m</jvmArg>
+            <jvmArg>-Xmx2g</jvmArg>
             <jvmArg>-DpackageLinkDefs=file://${project.build.directory}/packageLinkDefs.properties</jvmArg>
           </jvmArgs>
-          <args>
-            <arg>-Xno-varargs-conversion</arg>
-          </args>
         </configuration>
       </plugin>
     </plugins>

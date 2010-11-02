@@ -18,7 +18,7 @@ All features are implemented in terms of above AST. Functions are used to transf
 the AST itself, or to transform the AST between different formats. Common transformations
 are summarized in a following picture.
 
-![Json AST](http://github.com/dpp/liftweb/raw/master/framework/lift-base/lift-json/json.png "Json AST")
+![Json AST](http://github.com/lift/lift/raw/master/framework/lift-base/lift-json/json.png "Json AST")
 
 Summary of the features:
 
@@ -37,13 +37,13 @@ Installation
 ============
 
 It comes with Lift, but non-Lift users can add lift-json as a dependency in following ways.
-Note, replace XX with correct Lift version (for instance M4).
+Note, replace XXX with correct Lift version.
 
 ### SBT users
 
 Add dependency to your project description:
 
-    val lift_json = "net.liftweb" % "lift-json" % "2.0-XX"
+    val lift_json = "net.liftweb" %% "lift-json" % "XXX"
 
 ### Maven users
 
@@ -52,14 +52,14 @@ Add dependency to your pom:
     <dependency>
       <groupId>net.liftweb</groupId>
       <artifactId>lift-json</artifactId>
-      <version>2.0-XX</version>
+      <version>XXX</version>
     </dependency>
 
 ### Others
 
 Download following jars:
 
-* http://scala-tools.org/repo-releases/net/liftweb/lift-json/2.0-XX/lift-json-2.0-XX.jar
+* http://scala-tools.org/repo-releases/net/liftweb/lift-json/XXX/lift-json-XXX.jar
 * http://mirrors.ibiblio.org/pub/mirrors/maven2/com/thoughtworks/paranamer/paranamer/2.1/paranamer-2.1.jar
 
 

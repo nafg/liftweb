@@ -1,4 +1,21 @@
-package net.liftweb.ldap
+/*
+ * Copyright 2010 WorldWide Conferencing, LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package net.liftweb {
+package ldap {
 
 import java.io.{InputStream, FileInputStream}
 import java.util.{Hashtable, Properties}
@@ -7,7 +24,7 @@ import javax.naming.Context
 import javax.naming.directory.{Attributes, BasicAttributes, SearchControls}
 import javax.naming.ldap.{LdapName, InitialLdapContext}
 
-import scala.collection.jcl.{Hashtable => ScalaHashtable, MapWrapper}
+import scala.collection.JavaConversions._
 
 import _root_.net.liftweb.util.Props
 import _root_.net.liftweb.common.Loggable
@@ -38,8 +55,7 @@ object SimpleLDAPVendor extends SimpleLDAPVendor {
     def parametersFromStream(stream: InputStream) : StringMap = {
         val p = new Properties()
         p.load(stream)
-
-        return convertToStringMap(p.asInstanceOf[Hashtable[String, String]])
+        Map.empty ++ p // .asInstanceOf[Hashtable[String, String]]
     }
 
     def setupFromBoot = {
@@ -52,12 +68,6 @@ object SimpleLDAPVendor extends SimpleLDAPVendor {
                     "ldap.userName" -> Props.get("ldap.userName").openOr(DEFAULT_USER),
                     "ldap.password" -> Props.get("ldap.password").openOr(DEFAULT_PASSWORD))
             }
-        }
-    }
-
-    private def convertToStringMap(javaMap: Hashtable[String, String]) = {
-        Map.empty ++ new MapWrapper[String, String]() {
-            def underlying = javaMap
         }
     }
 }
@@ -146,4 +156,7 @@ class LDAPVendor extends Loggable {
                                                                         DEFAULT_INITIAL_CONTEXT_FACTORY))
         return Some(new InitialLdapContext(env, null))
     }
+}
+
+}
 }

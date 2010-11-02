@@ -39,17 +39,28 @@ object MapperSpecs extends Specification {
   val doLog = false
 
   def providers =
-    if (false || Props.getBool("lift.fasttest", false)) 
+    if (false || Props.getBool("lift.fasttest", false))
       (DBProviders.H2MemoryProvider :: Nil)
     else
       DBProviders.asList
 
-  private def logDBStuff(log: DBLog, len: Long) {
-    println(" in log stuff "+log.getClass.getName)
-    log match {
-      case null =>
-      case _ => println(log.allEntries)
-    }
+  /*
+   private def logDBStuff(log: DBLog, len: Long) {
+   println(" in log stuff "+log.getClass.getName)
+   log match {
+   case null =>
+   case _ => println(log.allEntries)
+   }
+   }
+
+   DB.addLogFunc(logDBStuff)
+   */
+
+  def dbSetup() {
+    Schemifier.destroyTables_!!(ignoreLogger _, SampleModel, SampleTag,
+                                Dog, User, Mixer, Dog2)
+    Schemifier.schemify(true, ignoreLogger _, SampleModel, SampleTag,
+                        User, Dog, Mixer, Dog2)
   }
 
   def snakify(connid: ConnectionIdentifier, name: String): String = {
@@ -59,12 +70,14 @@ object MapperSpecs extends Specification {
       name.toLowerCase
   }
 
+  /*
   if (!DB.loggingEnabled_? && doLog)
     DB.addLogFunc(logDBStuff)
+*/
 
   MapperRules.columnName = snakify
   MapperRules.tableName = snakify
-  
+
   // Simple name calculator
   def displayNameCalculator(bm:BaseMapper,l:java.util.Locale,name:String) = {
     val mapperName = bm.dbName
@@ -72,27 +85,27 @@ object MapperSpecs extends Specification {
       case "firstName" if l == Locale.getDefault() => "DEFAULT:"+mapperName+"."+name
       case "firstName" if l == new Locale("da","DK") => "da_DK:"+mapperName+"."+name
       case _ => name
-    } 
+    }
     displayName
-  } 
+  }
   MapperRules.displayNameCalculator.default.set(displayNameCalculator _)
 
   // Snake connection doesn't create FK constraints
   MapperRules.createForeignKeys_? = c => c.jndiName != "snake"
-  
+
   providers.foreach(provider => {
       def cleanup() {
         try { provider.setupDB } catch { case e if !provider.required_? => skip("Provider %s not available: %s".format(provider, e)) }
-        Schemifier.destroyTables_!!(DefaultConnectionIdentifier, if (doLog) Schemifier.infoF _ else ignoreLogger _,  SampleTag, SampleModel, Dog, Mixer, Dog2, User)
+        Schemifier.destroyTables_!!(DefaultConnectionIdentifier, if (doLog) Schemifier.infoF _ else ignoreLogger _,  SampleTag, SampleModel, Dog, Mixer, Dog2, User, TstItem)
         Schemifier.destroyTables_!!(DBProviders.SnakeConnectionIdentifier, if (doLog) Schemifier.infoF _ else ignoreLogger _, SampleTagSnake, SampleModelSnake)
-        Schemifier.schemify(true, if (doLog) Schemifier.infoF _ else ignoreLogger _, DefaultConnectionIdentifier, SampleModel, SampleTag, User, Dog, Mixer, Dog2)
+        Schemifier.schemify(true, if (doLog) Schemifier.infoF _ else ignoreLogger _, DefaultConnectionIdentifier, SampleModel, SampleTag, User, Dog, Mixer, Dog2, TstItem)
         Schemifier.schemify(true, if (doLog) Schemifier.infoF _ else ignoreLogger _, DBProviders.SnakeConnectionIdentifier, SampleModelSnake, SampleTagSnake)
       }
 
       ("Mapper for " + provider.name) should {
         "schemify" in {
           cleanup()
-          
+
           val elwood = SampleModel.find(By(SampleModel.firstName, "Elwood")).open_!
           val madeline = SampleModel.find(By(SampleModel.firstName, "Madeline")).open_!
           val archer = SampleModel.find(By(SampleModel.firstName, "Archer")).open_!
@@ -117,14 +130,14 @@ object MapperSpecs extends Specification {
           SampleModel.firstName.dbColumnName must_== "firstname"
           SampleModel.dbTableName must_== "samplemodel"
         }
-        
+
         "should use displayNameCalculator for displayName" in {
           val localeCalculator = LiftRules.localeCalculator
           SampleModel.firstName.displayName must_== "DEFAULT:SampleModel.firstName"
-          
+
           LiftRules.localeCalculator = (request: Box[HTTPRequest]) => request.flatMap(_.locale).openOr(new Locale("da","DK"))
           SampleModel.firstName.displayName must_== "da_DK:SampleModel.firstName"
-          
+
           LiftRules.localeCalculator = localeCalculator
         }
 
@@ -139,7 +152,7 @@ object MapperSpecs extends Specification {
           SampleTag.extraColumn.dbColumnName must_== "AnExtraColumn"
           Mixer.dbTableName must_== "MIXME_UP"
         }
-        
+
         "basic JSON encoding/decoding works" in {
           cleanup()
           val m = SampleModel.findAll().head
@@ -228,20 +241,20 @@ object MapperSpecs extends Specification {
           val nullString: String = null
           SampleModel.create.firstName("Not Null").notNull(nullString).save must throwA[java.sql.SQLException]
         }
-        
+
         "enforce FK constraint on DefaultConnection" in {
           cleanup()
           val supportsFK = DB.use(DefaultConnectionIdentifier) {
             conn => conn.driverType.supportsForeignKeys_?
           }
           if (!supportsFK) skip("Driver %s does not support FK constraints".format(provider))
-        
+
           SampleTag.create.model(42).save must throwA[java.sql.SQLException]
         }
 
         "not enforce FK constraint on SnakeConnection" in {
           cleanup()
-          SampleTagSnake.create.model(42).save 
+          SampleTagSnake.create.model(42).save
         }
 
         "Precache works" in {
@@ -327,7 +340,7 @@ object MapperSpecs extends Specification {
         "work with Mixed case update and delete" in {
           cleanup()
 
-          
+
           val elwood = Mixer.find(By(Mixer.name, "Elwood")).open_!
 
 
@@ -346,7 +359,7 @@ object MapperSpecs extends Specification {
           Mixer.find(By(Mixer.weight, 966)).isDefined must_== false
           Mixer.find(By(Mixer.name, "FruitBar")).isDefined must_== false
           Mixer.find(By(Mixer.name, "Elwood")).isDefined must_== false
-         
+
         }
 
         "work with Mixed case update and delete for Dog2" in {
@@ -363,13 +376,22 @@ object MapperSpecs extends Specification {
           fb.name.is must_== "FruitBar"
 
           fb.actualAge.is must_== 966
-         
+
           fb.delete_!
 
           Dog2.find(By(Dog2.actualAge, 966)).isDefined must_== false
           Dog2.find(By(Dog2.name, "FruitBar")).isDefined must_== false
           Dog2.find(By(Dog2.name, "Elwood")).isDefined must_== false
         }
+
+	
+	"Non-autogenerated primary key items should be savable after a field has been changed" in {
+          cleanup()
+
+	  val item = TstItem.create.tmdbId(1L).saveMe
+	  item.name("test").save
+	}
+
 
         "Precache works with OrderBy with Mixed Case" in {
           if ((provider ne DBProviders.DerbyProvider)
@@ -495,9 +517,9 @@ class SampleTag extends LongKeyedMapper[SampleTag] with IdPK {
   def getSingleton = SampleTag // what's the "meta" server
 
   object tag extends MappedString(this, 32)
-  
+
   object model extends MappedLongForeignKey(this, SampleModel)
-  
+
   object extraColumn extends MappedString(this, 32) {
     override def dbColumnName = "AnExtraColumn"
   }
@@ -541,7 +563,7 @@ object SampleTagSnake extends SampleTagSnake with LongKeyedMetaMapper[SampleTagS
     for (t <- tags;
          m <- samp) SampleTagSnake.create.tag(t).model(m).save
   }
-  
+
    override def dbDefaultConnectionIdentifier = DBProviders.SnakeConnectionIdentifier
 }
 
@@ -549,9 +571,9 @@ class SampleTagSnake extends LongKeyedMapper[SampleTagSnake] with IdPK {
   def getSingleton = SampleTagSnake // what's the "meta" server
 
   object tag extends MappedString(this, 32)
-  
+
   object model extends MappedLongForeignKey(this, SampleModelSnake)
-  
+
   object extraColumn extends MappedString(this, 32) {
     override def dbColumnName = "AnExtraColumn"
   }
@@ -641,6 +663,8 @@ object Dog extends Dog with LongKeyedMetaMapper[Dog] {
     create.name("Archer").save
     create.name("fido").owner(User.find(By(User.firstName, "Elwood"))).save
   }
+
+  def who(in: Dog): Box[User] = in.owner
 }
 
 class Mixer extends LongKeyedMapper[Mixer] with IdPK {
@@ -669,6 +693,26 @@ object Mixer extends Mixer with LongKeyedMetaMapper[Mixer] {
     create.name("Archer").weight(105).save
   }
 }
+
+/**
+ * Test class to see if you can have a non-autogenerated primary key
+ * Issue 552
+ */
+class TstItem extends LongKeyedMapper[TstItem] {
+  def getSingleton = TstItem
+  
+  def primaryKeyField = tmdbId
+  
+  object tmdbId extends MappedLongIndex(this) {
+    override def writePermission_? = true
+    override def dbAutogenerated_? = false
+  }
+  
+  object name extends MappedText(this)	
+}
+
+object TstItem extends TstItem with LongKeyedMetaMapper[TstItem]
+
 
 class Dog2 extends LongKeyedMapper[Dog2]  with CreatedUpdated {
   def getSingleton = Dog2

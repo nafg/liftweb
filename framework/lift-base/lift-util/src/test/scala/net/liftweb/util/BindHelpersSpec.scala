@@ -138,10 +138,69 @@ object BindHelpersSpec extends Specification  {
     "replace an attribute named 'namespace:bindparam name' in a NodeSeq with a new attribute name and calculated value from an FuncAttrOptionBindParam" in {
       bind("user", <t user:tag="dear"></t>, FuncAttrBoxBindParam("tag", (n: NodeSeq) => Full(Text(n.text + " world")), "hello")) must ==/(<t hello="dear world"></t>)
     }
-
-
-
   }
+
+  "findOption" should {
+    "find an id" in {
+      val xml = <foo><bar/>Dog<b><woof id="3"/></b></foo>
+
+      findOption(xml) {
+        e => e.attribute("id").
+        filter(_.text == "3").map(i => e)
+      }.get must ==/ (<woof id="3"/>)
+    }
+
+    "not find an ide" in {
+      val xml = <foo><bar/>Dog<b><woof ide="3"/></b></foo>
+
+      findOption(xml) {
+        e => e.attribute("id").
+        filter(_.text == "3").map(i => e)
+      } must_== None
+    }
+
+
+    "not find a the wrong id" in {
+      val xml = <foo><bar/>Dog<b><woof ide="4"/></b></foo>
+
+      findOption(xml) {
+        e => e.attribute("id").
+        filter(_.text == "3").map(i => e)
+      } must_== None
+    }
+  }
+
+  "findBox" should {
+    "find an id" in {
+      val xml = <foo><bar/>Dog<b><woof id="3"/></b></foo>
+
+      findBox(xml) {
+        e => e.attribute("id").
+        filter(_.text == "3").
+        map(i => e)
+      }.open_! must ==/ (<woof id="3"/>)
+    }
+
+    "not find an ide" in {
+      val xml = <foo><bar/>Dog<b><woof ide="3"/></b></foo>
+
+      findBox(xml) {
+        e => e.attribute("id").
+        filter(_.text == "3").map(i => e)
+      } must_== Empty
+    }
+
+
+    "not find a the wrong id" in {
+      val xml = <foo><bar/>Dog<b><woof ide="4"/></b></foo>
+
+      findBox(xml) {
+        e => e.attribute("id").
+        filter(_.text == "3").map(i => e)
+      } must_== Empty
+    }
+  }
+
   "the xmlParam function" should {
     "find the value of an attribute in an xml fragment" in {
       xmlParam(<t hello="world">world</t>, "hello") must_== Full("world")
@@ -152,6 +211,17 @@ object BindHelpersSpec extends Specification  {
     "return Empty if the attribute is not found" in {
       xmlParam(<t hello="">world</t>, "notfound") must_== Empty
     }
+  }
+
+  "Add CSS Class" should {
+    "add a new attribute" in {
+      (addCssClass("foo", <b/>) \ "@class").text must_== "foo"
+    }
+
+    "append an existing attribute" in {
+      (addCssClass("foo", <b class="dog"/>) \ "@class").text must_== "dog foo"
+    }
+
   }
 
   "The bind helpers should deal correctly with <select>" should {
@@ -219,8 +289,388 @@ object BindHelpersSpec extends Specification  {
       Helpers.stripHead(<head3><i><head>hello</head></i></head3>) must ==/(<head3><i>hello</i></head3>)
     }
   }
+
+  "Binding attributes" should {
+    "handle static, unprefixed attributes" in {
+      BindHelpers.bind("test", 
+                       <div><div test:x="replace" /></div>,
+                       AttrBindParam("x", "staticUnprefixed", "id")) must ==/(<div><div id="staticUnprefixed" /></div>)
+    }
+
+    "handle dynamic, unprefixed attributes" in {
+      // The Unprefixed attributes that Lift merges in cause the XML equals comparison to fail
+      // stringifying and then reparsing fixes it.
+      XML.loadString(
+        BindHelpers.bind("test", 
+                         <div><div test:x="dynamicUnprefixed" /></div>,
+                         FuncAttrBindParam("x", {ns : NodeSeq => ns }, "id")).toString) must ==/(<div><div id="dynamicUnprefixed" /></div>)
+    }
+
+    "handle static, prefixed attributes" in {
+      BindHelpers.bind("test", 
+                       <div><div test:x="replace" /></div>,
+                       AttrBindParam("x", "staticPrefixed", ("result","id"))) must ==/(<div><div result:id="staticPrefixed" /></div>)
+    }
+
+    "handle dynamic, prefixed attributes" in {
+      BindHelpers.bind("test", 
+                       <div><div test:x="dynamicPrefixed" /></div>,
+                       FuncAttrBindParam("x", {ns : NodeSeq => ns}, ("result","id"))) must ==/(<div><div result:id="dynamicPrefixed" /></div>)
+    }
+  }
 }
 class BindHelpersTest extends JUnit4(BindHelpersSpec)
+
+
+object CssBindHelpersSpec extends Specification  {
+  import BindHelpers._
+
+  "css bind helpers" should {
+    "clear clearable" in {
+      ClearClearable(<b><span class="clearable"/></b>) must ==/ (<b/>)
+    }
+
+    "substitute a String by id" in {
+      ("#foo" #> "hello")(<b><span id="foo"/></b>) must ==/ (<b>hello</b>)
+    }
+
+
+    "substitute a String by id" in {
+      ("#foo" replaceWith "hello")(<b><span id="foo"/></b>) must ==/ (<b>hello</b>)
+    }
+
+    "substitute multiple Strings by id" in {
+      ("#foo" #> "hello" &
+     "#baz" #> "bye")(<b><div id="baz">Hello</div><span id="foo"/></b>) must ==/ (<b>{Text("bye")}{Text("hello")}</b>)
+    }
+
+    "substitute multiple Strings by id" in {
+      (("#foo" replaceWith "hello") &
+       ("#baz" replaceWith "bye"))(<b><div id="baz">Hello</div><span id="foo"/></b>) must ==/ (<b>{Text("bye")}{Text("hello")}</b>)
+    }
+
+    "substitute multiple Strings with a List by id" in {
+      ("#foo" #> "hello" &
+     "#baz" #> List("bye", "bye"))(<b><div id="baz">Hello</div><span id="foo"/></b>) must ==/ (<b>{Text("bye")}{Text("bye")}{Text("hello")}</b>)
+    }
+
+    "substitute multiple Strings with a List by id" in {
+      (("#foo" replaceWith "hello") &
+       ("#baz" replaceWith List("bye", "bye")))(<b><div id="baz">Hello</div><span id="foo"/></b>) must ==/ (<b>{Text("bye")}{Text("bye")}{Text("hello")}</b>)
+    }
+
+
+    "substitute multiple Strings with a List of XML by id" in {
+      val answer = ("#foo" #> "hello" &
+     "#baz" #> List[NodeSeq](<i/>, <i>Meow</i>))(<b><div frog="dog" id="baz">Hello</div><span id="foo"/></b>)
+      
+      (answer \ "i").length must_== 2
+      (answer \ "i")(0) must ==/ (<i id="baz" frog="dog"/>)
+      (answer \ "i")(1) must ==/ (<i frog="dog">Meow</i>)
+    }
+
+    "substitute multiple Strings with a List of XML by id" in {
+      val answer = (("#foo" replaceWith "hello") &
+                    ("#baz" replaceWith List[NodeSeq](<i/>, <i>Meow</i>)))(<b><div frog="dog" id="baz">Hello</div><span id="foo"/></b>)
+      
+      (answer \ "i").length must_== 2
+      (answer \ "i")(0) must ==/ (<i id="baz" frog="dog"/>)
+      (answer \ "i")(1) must ==/ (<i frog="dog">Meow</i>)
+    }
+
+    "substitute by name" in {
+      val answer = ("name=moose" #> <input name="goof"/>).apply (
+        <div><input name="moose" value="start" id="79"/></div>)
+
+      (answer \ "input")(0) must ==/ (<input name="goof" value="start" id="79"/>)
+    }
+    
+    "substitute by name" in {
+      val answer = ("name=moose" replaceWith <input name="goof"/>).apply (
+        <div><input name="moose" value="start" id="79"/></div>)
+
+      (answer \ "input")(0) must ==/ (<input name="goof" value="start" id="79"/>)
+    }
+    
+
+    "substitute by name with attrs" in {
+      val answer = ("name=moose" #> <input name="goof" value="8" id="88"/>).apply (
+        <div><input name="moose" value="start" id="79"/></div>)
+
+      (answer \ "input")(0) must ==/ (<input name="goof" value="8" id="88"/>)
+    }
+    
+    "substitute by name with attrs" in {
+      val answer = ("name=moose" replaceWith <input name="goof" value="8" id="88"/>).apply (
+        <div><input name="moose" value="start" id="79"/></div>)
+
+      (answer \ "input")(0) must ==/ (<input name="goof" value="8" id="88"/>)
+    }
+    
+
+    "substitute by a selector with attrs" in {
+      val answer = ("cute=moose" #> <input name="goof" value="8" id="88"/>).apply (
+        <div><input name="meow" cute="moose" value="start" id="79"/></div>)
+
+      (answer \ "input")(0) must ==/ (<input cute="moose" name="goof" value="8" id="88"/>)
+    }
+    
+    "substitute by a selector with attrs" in {
+      val answer = ("cute=moose" replaceWith <input name="goof" value="8" id="88"/>).apply (
+        <div><input name="meow" cute="moose" value="start" id="79"/></div>)
+
+      (answer \ "input")(0) must ==/ (<input cute="moose" name="goof" value="8" id="88"/>)
+    }
+
+    "Map of funcs" in {
+      val func: NodeSeq => NodeSeq = "#horse" #> List(1,2,3).map(".item *" #> _)
+      val answer: NodeSeq = func(<span><div id="horse">frog<span class="item">i</span></div></span>)
+
+      answer must ==/ (<span><div id="horse">frog<span class="item">1</span></div><div>frog<span class="item">2</span></div><div>frog<span class="item">3</span></div></span>)
+                  
+    }
+    
+
+    "merge classes" in {
+      val answer = ("cute=moose" #> <input class="a" name="goof" value="8" id="88"/>).apply (
+        <div><input name="meow" class="b" cute="moose" value="start" id="79"/></div>)
+
+      (answer \ "input")(0) must ==/ (<input class="a b" cute="moose" name="goof" value="8" id="88"/>)
+    }
+    
+
+    "merge classes" in {
+      val answer = ("cute=moose" replaceWith <input class="a" name="goof" value="8" id="88"/>).apply (
+        <div><input name="meow" class="b" cute="moose" value="start" id="79"/></div>)
+
+      (answer \ "input")(0) must ==/ (<input class="a b" cute="moose" name="goof" value="8" id="88"/>)
+    }
+    
+
+
+
+    "list of strings" in {
+      val answer = ("#moose *" #> List("a", "b", "c", "woof") &
+                    ClearClearable).apply (
+        <ul>
+        <li id="moose">first</li>
+        <li class="clearable">second</li>
+        <li class="clearable">Third</li>
+        </ul>)
+        
+      val lis = (answer \ "li").toList
+      
+      lis.length must_== 4
+
+      lis(0) must ==/ (<li id="moose">a</li>)
+      lis(3) must ==/ (<li>woof</li>)
+    }
+    
+
+    "list of Nodes" in {
+      val answer = ("#moose *" #> List[NodeSeq](<i>"a"</i>, Text("b"), Text("c"), <b>woof</b>) &
+                    ClearClearable).apply (
+        <ul>
+        <li id="moose">first</li>
+        <li class="clearable">second</li>
+        <li class="clearable">Third</li>
+        </ul>)
+        
+      val lis = (answer \ "li").toList
+      
+      lis.length must_== 4
+
+      lis(0) must ==/ (<li id="moose"><i>"a"</i></li>)
+      lis(3) must ==/ (<li><b>woof</b></li>)
+    }
+    
+
+    "set href" in {
+      val answer = ("#moose [href]" #> "Hi" &
+                    ClearClearable).apply (
+        <ul><a id="moose" href="meow">first</a><li class="clearable">second</li><li class="clearable">Third</li></ul>)
+        
+    
+    (answer \ "a" \ "@href").text must_== "Hi"
+      (answer \ "li").length must_== 0
+    }
+    
+    "set href and subnodes" in {
+      val answer = ("#moose [href]" #> "Hi" &
+                    ClearClearable).apply (
+        <ul><a id="moose" href="meow">first<li class="clearable">second</li><li class="clearable">Third</li></a></ul>)
+        
+    
+    (answer \ "a" \ "@href").text must_== "Hi"
+      (answer \\ "li").length must_== 0
+    }
+
+
+    "list of strings" in {
+      val answer = (("#moose *" replaceWith List("a", "b", "c", "woof")) &
+                    ClearClearable).apply (
+        <ul>
+        <li id="moose">first</li>
+        <li class="clearable">second</li>
+        <li class="clearable">Third</li>
+        </ul>)
+        
+      val lis = (answer \ "li").toList
+      
+      lis.length must_== 4
+
+      lis(0) must ==/ (<li id="moose">a</li>)
+      lis(3) must ==/ (<li>woof</li>)
+    }
+    
+
+    "list of Nodes" in {
+      val answer = (("#moose *" replaceWith List[NodeSeq](<i>"a"</i>, Text("b"), Text("c"), <b>woof</b>)) &
+                    ClearClearable).apply (
+        <ul>
+        <li id="moose">first</li>
+        <li class="clearable">second</li>
+        <li class="clearable">Third</li>
+        </ul>)
+        
+      val lis = (answer \ "li").toList
+      
+      lis.length must_== 4
+
+      lis(0) must ==/ (<li id="moose"><i>"a"</i></li>)
+      lis(3) must ==/ (<li><b>woof</b></li>)
+    }
+    
+
+    "set href" in {
+      val answer = (("#moose [href]" replaceWith "Hi") &
+                    ClearClearable).apply (
+        <ul><a id="moose" href="meow">first</a><li class="clearable">second</li><li class="clearable">Third</li></ul>)
+        
+    
+    (answer \ "a" \ "@href").text must_== "Hi"
+      (answer \ "li").length must_== 0
+    }
+    
+    "set href and subnodes" in {
+      val answer = (("#moose [href]" replaceWith "Hi") &
+                    ClearClearable).apply (
+        <ul><a id="moose" href="meow">first<li class="clearable">second</li><li class="clearable">Third</li></a></ul>)
+        
+    
+    (answer \ "a" \ "@href").text must_== "Hi"
+      (answer \\ "li").length must_== 0
+    }
+    
+
+  }
+}
+class CssBindHelpersTest extends JUnit4(CssBindHelpersSpec)
+
+/**
+ * This class doesn't actually perform any tests, but insures that
+ * the implicit conversions work correctly
+ */
+object CheckTheImplicitConversionsForToCssBindPromoter {
+  val bog = new ToCssBindPromoter(Empty, Empty)
+
+  import BindHelpers._
+
+  "foo" #> "baz"
+
+  bog #> "Hello" 
+  bog #> <span/>
+  bog #> 1
+  bog #> 'foo
+  bog #> 44L
+  bog #> false
+
+  bog #> List(<span/>)
+  bog #> Full(<span/>)
+  bog #> Some(<span/>)
+
+
+  bog #> List("Hello")
+  bog #> Full("Dog")
+  bog #> Some("Moo")
+
+
+  bog #> List((null: Bindable))
+  bog #> Full((null: Bindable))
+  bog #> Some((null: Bindable))
+
+  bog #> nsToNs _
+  bog #> nsToOptNs _
+  bog #> nsToBoxNs _
+  bog #> nsToSeqNs _
+
+  bog #> nsToString _
+  bog #> nsToOptString _
+  bog #> nsToBoxString _
+  bog #> nsToSeqString _
+
+  val nsf: NodeSeq => NodeSeq = bog #> "Hello" &
+  bog #> <span/> &
+  bog #> 1 &
+  bog #> 'foo &
+  bog #> 44L &
+  bog #> false
+
+  "foo" #> "Hello" 
+  "foo" #> <span/>
+  "foo" #> 1
+  "foo" #> 'foo
+  "foo" #> 44L
+  "foo" #> false
+
+  "foo" #> List(<span/>)
+  "foo" #> Full(<span/>)
+  "foo" #> Some(<span/>)
+
+
+  "foo" #> List("Hello")
+  "foo" #> Full("Dog")
+  "foo" #> Some("Moo")
+
+
+  "foo" #> List((null: Bindable))
+  "foo" #> Full((null: Bindable))
+  "foo" #> Some((null: Bindable))
+
+  "foo" #> nsToNs _
+  "foo" #> nsToOptNs _
+  "foo" #> nsToBoxNs _
+  "foo" #> nsToSeqNs _
+
+  "foo" #> nsToString _
+  "foo" #> nsToOptString _
+  "foo" #> nsToBoxString _
+  "foo" #> nsToSeqString _
+
+  "#foo" #> Set("a", "b", "c")
+
+  val nsf2: NodeSeq => NodeSeq = "foo" #> "Hello" &
+  "foo" #> <span/> &
+  "foo" #> 1 &
+  "foo" #> 'foo &
+  "foo" #> 44L &
+  "foo" #> false
+
+  "bar" #> List("1","2","3").map(s => "baz" #> s)
+
+
+
+  def nsToNs(in: NodeSeq): NodeSeq = in
+  def nsToOptNs(in: NodeSeq): Option[NodeSeq] = Some(in)
+  def nsToBoxNs(in: NodeSeq): Box[NodeSeq] = Full(in)
+  def nsToSeqNs(in: NodeSeq): Seq[NodeSeq] = List(in)
+
+  def nsToString(in: NodeSeq): String = in.text
+  def nsToOptString(in: NodeSeq): Option[String] = Some(in.text)
+  def nsToBoxString(in: NodeSeq): Box[String] = Full(in.text)
+  def nsToSeqString(in: NodeSeq): Seq[String] = List(in.text)
+}
+
 
 }
 }

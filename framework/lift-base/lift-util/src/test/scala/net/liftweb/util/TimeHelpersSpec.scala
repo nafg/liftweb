@@ -34,7 +34,7 @@ class TimeHelpersTest extends JUnit4(TimeHelpersSpec)
 object TimeHelpersSpec extends Specification with  ScalaCheck {
   object MyHelpers extends ControlHelpers with TimeHelpers with  TimeAmountsGen
   import MyHelpers._
-  
+
   "A TimeSpan" can {
     "be created from a number of milliseconds" in {
       TimeSpan(3000) must_== TimeSpan(3 * 1000)
@@ -61,15 +61,15 @@ object TimeHelpersSpec extends Specification with  ScalaCheck {
       3.seconds.after(new Date(0)) must beTrue
     }
     "be implicitly converted to a Long" in {
-      3.seconds must_== 3000L
+      (3.seconds == 3000L) must_== true
     }
     "be compared to an int" in {
-      3.seconds must_== 3000
-      3.seconds must_!= 2000
+      (3.seconds == 3000) must_== true
+      (3.seconds != 2000) must_== true
     }
     "be compared to a long" in {
-      3.seconds must_== 3000L
-      3.seconds must_!= 2000L
+      (3.seconds == 3000L) must_== true
+      (3.seconds != 2000L) must_== true
     }
     "be compared to another TimeSpan" in {
       3.seconds must_== 3.seconds
@@ -87,10 +87,10 @@ object TimeHelpersSpec extends Specification with  ScalaCheck {
       3.seconds - 4.seconds must_== (-1).seconds
     }
     "have a later method returning a date relative to now plus the time span" in {
-      3.seconds.later.getTime must beCloseTo(new Date().getTime + 3.seconds.millis, 100L)
+      3.seconds.later.getTime must beCloseTo(new Date().getTime + 3.seconds.millis, 500L)
     }
     "have an ago method returning a date relative to now minus the time span" in {
-      3.seconds.ago.getTime must beCloseTo(new Date().getTime - 3.seconds.millis, 100L)
+      3.seconds.ago.getTime must beCloseTo(new Date().getTime - 3.seconds.millis, 500L)
     }
     "have a toString method returning the relevant number of weeks, days, hours, minutes, seconds, millis" in {
       val conversionIsOk = forAll(timeAmounts)((t: TimeAmounts) => { val (timeSpanToString, timeSpanAmounts) = t

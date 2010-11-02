@@ -25,6 +25,7 @@ import JsonAST._
 import JsonDSL._
 import _root_.net.liftweb.common._
 import _root_.scala.xml._
+import _root_.scala.xml.Utility.trim
 import _root_.java.util.{Map => JavaMap, Set => JavaSet, Iterator => JavaIterator, List => JavaList}
 import _root_.java.util.regex.Pattern
 import _root_.java.io.IOException
@@ -38,11 +39,11 @@ trait ToResponse {
   self: BaseGetPoster =>
 
   type ResponseType = TestResponse
- 
+
   implicit def responseCapture(fullUrl: String,
                                        httpClient: HttpClient,
                                        getter: HttpMethodBase): ResponseType = {
-    
+
     val ret: ResponseType = try {
       (baseUrl + fullUrl, httpClient.executeMethod(getter)) match {
         case (server, responseCode) =>
@@ -50,7 +51,7 @@ trait ToResponse {
 
           new HttpResponse(baseUrl,
                            responseCode, getter.getStatusText,
-                           respHeaders, 
+                           respHeaders,
                            for {st <- Box !! getter.getResponseBodyAsStream
                                 bytes <- tryo(readWholeStream(st))
                               } yield bytes,
@@ -63,7 +64,7 @@ trait ToResponse {
     }
 
     ret
-  }                                         
+  }
 }
 
 trait ToBoxTheResponse {
@@ -74,17 +75,17 @@ trait ToBoxTheResponse {
 
   implicit def responseCapture(fullUrl: String,
                                httpClient: HttpClient,
-                               getter: HttpMethodBase): 
+                               getter: HttpMethodBase):
   Box[TheResponse] = {
-    
+
     val ret = try {
       (baseUrl + fullUrl, httpClient.executeMethod(getter)) match {
         case (server, responseCode) =>
           val respHeaders = slurpApacheHeaders(getter.getResponseHeaders)
-        
+
         Full(new TheResponse(baseUrl,
                              responseCode, getter.getStatusText,
-                             respHeaders, 
+                             respHeaders,
                              for {st <- Box !! getter.getResponseBodyAsStream
                                   bytes <- tryo(readWholeStream(st))
                                 } yield bytes,
@@ -97,7 +98,7 @@ trait ToBoxTheResponse {
     }
 
     ret
-  }                                         
+  }
 
 }
 
@@ -155,7 +156,7 @@ trait BaseGetPoster {
   def delete(url: String, httpClient: HttpClient,
                 headers: List[(String, String)],
                 faux_params: (String, Any)*)
-  (implicit capture: (String, HttpClient, HttpMethodBase) => ResponseType): 
+  (implicit capture: (String, HttpClient, HttpMethodBase) => ResponseType):
   ResponseType
   = {
     val params = faux_params.toList.map(x => (x._1, x._2.toString))
@@ -163,7 +164,7 @@ trait BaseGetPoster {
     val getter = new DeleteMethod(baseUrl + fullUrl)
     getter.getParams().setCookiePolicy(CookiePolicy.RFC_2965)
     for ((name, value) <- headers) getter.setRequestHeader(name, value)
-    
+
     capture(fullUrl, httpClient, getter)
   }
 
@@ -177,7 +178,7 @@ trait BaseGetPoster {
   def post(url: String, httpClient: HttpClient,
            headers: List[(String, String)],
            faux_params: (String, Any)*)
-  (implicit capture: (String, HttpClient, HttpMethodBase) => ResponseType): 
+  (implicit capture: (String, HttpClient, HttpMethodBase) => ResponseType):
   ResponseType
   = {
     val params = faux_params.toList.map(x => (x._1, x._2.toString))
@@ -189,31 +190,31 @@ trait BaseGetPoster {
     capture(url, httpClient, poster)
   }
 
-  implicit def xmlToRequestEntity(body: NodeSeq): RequestEntity = 
+  implicit def xmlToRequestEntity(body: NodeSeq): RequestEntity =
     new RequestEntity {
       val bytes = body.toString.getBytes("UTF-8")
-      
+
       def getContentLength() = bytes.length
-      
+
       def getContentType() = "text/xml; charset=utf-8"
-      
+
       def isRepeatable() = true
-      
+
       def writeRequest(out: OutputStream) {
         out.write(bytes)
       }
     }
 
-  implicit def jsonToRequestEntity(body: JValue): RequestEntity = 
+  implicit def jsonToRequestEntity(body: JValue): RequestEntity =
     new RequestEntity {
       val bytes = compact(render(body)).toString.getBytes("UTF-8")
-      
+
       def getContentLength() = bytes.length
-      
+
       def getContentType() = "application/json"
-      
+
       def isRepeatable() = true
-      
+
       def writeRequest(out: OutputStream) {
         out.write(bytes)
       }
@@ -236,7 +237,7 @@ trait BaseGetPoster {
     poster.getParams().setCookiePolicy(CookiePolicy.RFC_2965)
     for ((name, value) <- headers) poster.setRequestHeader(name, value)
     poster.setRequestEntity(bodyToRequestEntity(body))
-    
+
     capture(url, httpClient, poster)
   }
 
@@ -252,7 +253,7 @@ trait BaseGetPoster {
               headers: List[(String, String)],
               body: Array[Byte],
               contentType: String)
-  (implicit capture: (String, HttpClient, HttpMethodBase) => ResponseType): 
+  (implicit capture: (String, HttpClient, HttpMethodBase) => ResponseType):
   ResponseType
   = {
     val poster = new PostMethod(baseUrl + url)
@@ -260,13 +261,13 @@ trait BaseGetPoster {
     for ((name, value) <- headers) poster.setRequestHeader(name, value)
     poster.setRequestEntity(new RequestEntity {
       private val bytes = body
-      
+
       def getContentLength() = bytes.length
-      
+
       def getContentType() = contentType
 
       def isRepeatable() = true
-      
+
       def writeRequest(out: OutputStream) {
         out.write(bytes)
       }
@@ -282,7 +283,7 @@ trait BaseGetPoster {
    */
   def put(url: String, httpClient: HttpClient,
           headers: List[(String, String)])
-  (implicit capture: (String, HttpClient, HttpMethodBase) => ResponseType): 
+  (implicit capture: (String, HttpClient, HttpMethodBase) => ResponseType):
   ResponseType
   = {
     val poster = new PutMethod(baseUrl + url)
@@ -309,7 +310,7 @@ trait BaseGetPoster {
       poster.getParams().setCookiePolicy(CookiePolicy.RFC_2965)
       for ((name, value) <- headers) poster.setRequestHeader(name, value)
       poster.setRequestEntity(bodyToRequestEntity(body))
-      
+
       capture(url, httpClient, poster)
     }
 
@@ -325,7 +326,7 @@ trait BaseGetPoster {
           headers: List[(String, String)],
           body: Array[Byte],
           contentType: String)
-  (implicit capture: (String, HttpClient, HttpMethodBase) => ResponseType): 
+  (implicit capture: (String, HttpClient, HttpMethodBase) => ResponseType):
   ResponseType
   = {
     val poster = new PutMethod(baseUrl + url)
@@ -333,13 +334,13 @@ trait BaseGetPoster {
     for ((name, value) <- headers) poster.setRequestHeader(name, value)
     poster.setRequestEntity(new RequestEntity {
       private val bytes = body
-      
+
       def getContentLength() = bytes.length
-      
+
       def getContentType() = contentType
-      
+
       def isRepeatable() = true
-      
+
       def writeRequest(out: OutputStream) {
         out.write(bytes)
       }
@@ -372,7 +373,7 @@ trait GetPosterHelper {
    * @param params the parameters to pass
    */
   def get(url: String, params: (String, Any)*)
-  (implicit capture: (String, HttpClient, HttpMethodBase) => ResponseType): 
+  (implicit capture: (String, HttpClient, HttpMethodBase) => ResponseType):
   ResponseType =
     get(url, theHttpClient, Nil, params: _*)(capture)
 
@@ -383,7 +384,7 @@ trait GetPosterHelper {
    * @param params the parameters to pass
    */
   def delete(url: String, params: (String, Any)*)
-  (implicit capture: (String, HttpClient, HttpMethodBase) => ResponseType): 
+  (implicit capture: (String, HttpClient, HttpMethodBase) => ResponseType):
   ResponseType =
     delete(url, theHttpClient, Nil, params: _*)(capture)
 
@@ -394,7 +395,7 @@ trait GetPosterHelper {
    * @param params the parameters to pass
    */
   def post(url: String, params: (String, Any)*)
-  (implicit capture: (String, HttpClient, HttpMethodBase) => ResponseType): 
+  (implicit capture: (String, HttpClient, HttpMethodBase) => ResponseType):
   ResponseType =
     post(url, theHttpClient, Nil, params: _*)(capture)
 
@@ -678,6 +679,98 @@ trait Response {
   def !(code: Int, msg: => String)(implicit errorFunc: ReportFailure): SelfType
 
   /**
+   * Test that the server response contains a particular node anywhere in the xml
+   * with the exact attributes and children.
+   * If the response does not contain valid xml or does not contain the exact node,
+   *   call the errorFunc with the msg.
+   *
+   * @param node the XML node to search for in the response
+   * @param msg the String to report as an error
+   * @param errorFunc the error reporting thing.
+   */
+  def \\(node: Node, msg: => String)(implicit errorFunc: ReportFailure): SelfType
+
+  /**
+   * Test that the server response contains a node with a particular label anywhere in the xml.
+   * If the response does not contain valid xml or does not contain the node,
+   *   call the errorFunc with the msg
+   *
+   * @param label the label for the XML node to search for in the response
+   * @param msg the String to report as an error
+   * @param errorFunc the error reporting thing.
+   */
+  def \\(label: String, msg: => String)(implicit errorFunc: ReportFailure): SelfType
+
+  /**
+   * Test that the server response does not contain a particular node anywhere in the xml
+   * with the exact attributes and children.
+   * If the response does contain valid xml and does contain the exact node,
+   *   call the errorFunc with the msg.
+   *
+   * @param node the XML node to search for in the response
+   * @param msg the String to report as an error
+   * @param errorFunc the error reporting thing.
+   */
+  def !\\(node: Node, msg: => String)(implicit errorFunc: ReportFailure): SelfType
+
+  /**
+   * Test that the server response does not contain a node with a particular label anywhere in the xml.
+   * If the response does contain valid xml and does contain the node,
+   *   call the errorFunc with the msg
+   *
+   * @param label the label for the XML node to search for in the response
+   * @param msg the String to report as an error
+   * @param errorFunc the error reporting thing.
+   */
+  def !\\(label: String, msg: => String)(implicit errorFunc: ReportFailure): SelfType
+
+  /**
+   * Test that the server response contains a particular node as a direct child
+   * with the exact attributes and children.
+   * If the response does not contain valid xml or does not contain the exact node,
+   *   call the errorFunc with the msg.
+   *
+   * @param node the XML node to search for in the response
+   * @param msg the String to report as an error
+   * @param errorFunc the error reporting thing.
+   */
+  def \(node: Node, msg: => String)(implicit errorFunc: ReportFailure): SelfType
+
+  /**
+   * Test that the server response contains a node with a particular label as a direct child.
+   * If the response does not contain valid xml or does not contain the node,
+   *   call the errorFunc with the msg
+   *
+   * @param label the label for the XML node to search for in the response
+   * @param msg the String to report as an error
+   * @param errorFunc the error reporting thing.
+   */
+  def \(label: String, msg: => String)(implicit errorFunc: ReportFailure): SelfType
+
+  /**
+   * Test that the server response does not contain a particular node as a direct child
+   * with the exact attributes and children.
+   * If the response does contain valid xml and does contain the exact node,
+   *   call the errorFunc with the msg.
+   *
+   * @param node the XML node to search for in the response
+   * @param msg the String to report as an error
+   * @param errorFunc the error reporting thing.
+   */
+  def !\(node: Node, msg: => String)(implicit errorFunc: ReportFailure): SelfType
+
+  /**
+   * Test that the server response does not contain a node with a particular label as a direct child.
+   * If the response does contain valid xml and does contain the node,
+   *   call the errorFunc with the msg
+   *
+   * @param label the label for the XML node to search for in the response
+   * @param msg the String to report as an error
+   * @param errorFunc the error reporting thing.
+   */
+  def !\(label: String, msg: => String)(implicit errorFunc: ReportFailure): SelfType
+
+  /**
    * the Response has a foreach method for chaining in a for comprehension
    */
   def foreach(f: FuncType => Unit): Unit
@@ -697,7 +790,7 @@ class HttpResponse(baseUrl: String,
                    code: Int, msg: String,
                    headers: Map[String, List[String]],
                    body: Box[Array[Byte]],
-                   theHttpClient: HttpClient) extends 
+                   theHttpClient: HttpClient) extends
   BaseResponse(baseUrl, code, msg, headers, body, theHttpClient) with
   ToResponse with TestResponse {
   }
@@ -710,11 +803,11 @@ class TheResponse(baseUrl: String,
                   code: Int, msg: String,
                   headers: Map[String, List[String]],
                   body: Box[Array[Byte]],
-                  theHttpClient: HttpClient) extends 
+                  theHttpClient: HttpClient) extends
   BaseResponse(baseUrl, code, msg, headers, body, theHttpClient) with
   ToBoxTheResponse {
     type SelfType = TheResponse
-    
+
   }
 
 trait TestResponse extends Response {
@@ -740,14 +833,18 @@ abstract class BaseResponse(override val baseUrl: String,
       case g: Group => unapply(g.nodes)
       case n: Text => None
       case sn: SpecialNode => None
-      case n: NodeSeq => n.flatMap(unapply).firstOption
+      case n: NodeSeq => 
+       val ns: Seq[Node] = n
+       val x: Seq[Elem] = ns.flatMap(v => unapply(v))
+       x.headOption
+      case _ => None
     }
   }
 
   /**
    * Get the body of the response as XML
    */
-  override lazy val xml: Box[Elem] = 
+  override lazy val xml: Box[Elem] =
     for {
       b <- body
       nodeSeq <- PCDataXmlParser(new _root_.java.io.ByteArrayInputStream(b))
@@ -760,12 +857,12 @@ abstract class BaseResponse(override val baseUrl: String,
   /**
    * The content type header of the response
    */
-  lazy val contentType: String = headers.filter {case (name, value) => name equalsIgnoreCase "content-type"}.toList.firstOption.map(_._2.head) getOrElse ""
+  lazy val contentType: String = headers.filter {case (name, value) => name equalsIgnoreCase "content-type"}.toList.headOption.map(_._2.head) getOrElse ""
 
   /**
    * The response body as a UTF-8 encoded String
    */
-  lazy val bodyAsString = 
+  lazy val bodyAsString =
     for {
       b <- body
     } yield new String(b, "UTF-8")
@@ -774,11 +871,44 @@ abstract class BaseResponse(override val baseUrl: String,
   def !@(msg: => String)(implicit errorFunc: ReportFailure): SelfType =
     if (code == 200) this.asInstanceOf[SelfType] else {errorFunc.fail(msg)}
 
-  def !(msg: => String)(implicit errorFunc: ReportFailure): SelfType = 
+  def !(msg: => String)(implicit errorFunc: ReportFailure): SelfType =
     this.asInstanceOf[SelfType]
 
   def !(code: Int, msg: => String)(implicit errorFunc: ReportFailure): SelfType =
     if (this.code != code) errorFunc.fail(msg) else this.asInstanceOf[SelfType]
+
+  def xmlMatch(findFunc: Elem => NodeSeq, filterFunc: Node => Boolean): Boolean =
+    xml.toList flatMap (theXml => findFunc(theXml)) exists ( n => filterFunc(trim(n)))
+      
+  def getOrFail(success: Boolean, msg: String, errorFunc: ReportFailure) =
+    if (success)
+      this.asInstanceOf[SelfType]
+    else
+      errorFunc.fail(msg)
+
+  def \\(node: Node, msg: => String)(implicit errorFunc: ReportFailure): SelfType =
+    getOrFail(xmlMatch(_ \\ node.label, _ == trim(node)), msg, errorFunc)
+
+  def \\(label: String, msg: => String)(implicit errorFunc: ReportFailure): SelfType =
+    getOrFail(xmlMatch(_ \\ label, _ => true), msg, errorFunc)
+
+  def !\\(node: Node, msg: => String)(implicit errorFunc: ReportFailure): SelfType =
+    getOrFail(!xmlMatch(_ \\ node.label, _ == trim(node)), msg, errorFunc)
+
+  def !\\(label: String, msg: => String)(implicit errorFunc: ReportFailure): SelfType =
+    getOrFail(!xmlMatch(_ \\ label, _ => true), msg, errorFunc)
+
+  def \(node: Node, msg: => String)(implicit errorFunc: ReportFailure): SelfType =
+    getOrFail(xmlMatch(_ \ node.label, _ == trim(node)), msg, errorFunc)
+
+  def \(label: String, msg: => String)(implicit errorFunc: ReportFailure): SelfType =
+    getOrFail(xmlMatch(_ \ label, _ => true), msg, errorFunc)
+
+  def !\(node: Node, msg: => String)(implicit errorFunc: ReportFailure): SelfType =
+    getOrFail(!xmlMatch(_ \ node.label, _ == trim(node)), msg, errorFunc)
+
+  def !\(label: String, msg: => String)(implicit errorFunc: ReportFailure): SelfType =
+    getOrFail(!xmlMatch(_ \ label, _ => true), msg, errorFunc)
 
   def foreach(f: FuncType => Unit): Unit = f(this.asInstanceOf[FuncType])
 
@@ -801,6 +931,22 @@ class CompleteFailure(val serverName: String, val exception: Box[Throwable]) ext
   def !(msg: => String)(implicit errorFunc: ReportFailure): SelfType = errorFunc.fail(msg)
 
   def !(code: Int, msg: => String)(implicit errorFunc: ReportFailure): SelfType = errorFunc.fail(msg)
+
+  def \\(node: Node, msg: => String)(implicit errorFunc: ReportFailure): SelfType = errorFunc.fail(msg)
+
+  def \\(label: String, msg: => String)(implicit errorFunc: ReportFailure): SelfType = errorFunc.fail(msg)
+
+  def !\\(node: Node, msg: => String)(implicit errorFunc: ReportFailure): SelfType = errorFunc.fail(msg)
+
+  def !\\(label: String, msg: => String)(implicit errorFunc: ReportFailure): SelfType = errorFunc.fail(msg)
+
+  def \(node: Node, msg: => String)(implicit errorFunc: ReportFailure): SelfType = errorFunc.fail(msg)
+
+  def \(label: String, msg: => String)(implicit errorFunc: ReportFailure): SelfType = errorFunc.fail(msg)
+
+  def !\(node: Node, msg: => String)(implicit errorFunc: ReportFailure): SelfType = errorFunc.fail(msg)
+
+  def !\(label: String, msg: => String)(implicit errorFunc: ReportFailure): SelfType = errorFunc.fail(msg)
 
   def foreach(f: HttpResponse => Unit): Unit = throw (exception openOr new java.io.IOException("HTTP Failure"))
 

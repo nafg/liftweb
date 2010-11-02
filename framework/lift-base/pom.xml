@@ -31,10 +31,10 @@
   -->
   <parent>
     <groupId>net.liftweb</groupId>
-    <artifactId>framework</artifactId>
-    <version>2.0-SNAPSHOT</version>
+    <artifactId>framework_2.8.0</artifactId>
+    <version>2.2-SNAPSHOT</version>
   </parent>
-  <artifactId>lift-base</artifactId>
+  <artifactId>lift-base_2.8.0</artifactId>
   <packaging>pom</packaging>
 
   <!--
@@ -52,6 +52,7 @@
     <module>lift-common</module>
     <module>lift-actor</module>
     <module>lift-json</module>
+    <module>lift-json-ext</module>
     <module>lift-util</module>
     <module>lift-webkit</module>
   </modules>
@@ -65,24 +66,7 @@
     ~ Dependency Settings
   -->
   <!-- <dependencyManagement/> -->
-  <dependencies>
-    <dependency>
-      <groupId>org.scala-lang</groupId>
-      <artifactId>scala-library</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.scala-tools.testing</groupId>
-      <artifactId>specs</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.scala-tools.testing</groupId>
-      <artifactId>scalacheck</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-    </dependency>
-  </dependencies>
+  <!-- <dependencies/> -->
 
   <!--
     ~ Build Settings

@@ -239,14 +239,16 @@ object DB extends Loggable {
   private def releaseConnectionNamed(name: ConnectionIdentifier, rollback: Boolean) {
     logger.trace("Request to release connection: " + name + " on thread " + Thread.currentThread)
     (info.get(name): @unchecked) match {
-      case Some(ConnectionHolder(c, 1, post)) =>
-        if (rollback) tryo{c.rollback}
-        else c.commit
+      case Some(ConnectionHolder(c, 1, post)) => {
+        if (! c.getAutoCommit()) {
+          if (rollback) tryo{c.rollback}
+          else c.commit
+        }
         tryo(c.releaseFunc())
         info -= name
         post.reverse.foreach(f => tryo(f()))
         logger.trace("Released connection " + name + " on thread " + Thread.currentThread)
-
+      }
       case Some(ConnectionHolder(c, n, post)) =>
         logger.trace("Did not release connection: " + name + " on thread " + Thread.currentThread + " count " + (n - 1))
         info(name) = ConnectionHolder(c, n - 1, post)
@@ -375,6 +377,32 @@ object DB extends Loggable {
     (colNames, lb.toList)
   }
 
+  /*
+   * This method handles the common task of setting arguments on a prepared
+   * statement based on argument type. Returns the properly updated PreparedStatement.
+   */
+  private def setPreparedParams(ps : PreparedStatement, params: List[Any]): PreparedStatement = {
+    params.zipWithIndex.foreach {
+      case (null, idx) => ps.setNull(idx + 1, Types.VARCHAR)
+      case (i: Int, idx) => ps.setInt(idx + 1, i)
+      case (l: Long, idx) => ps.setLong(idx + 1, l)
+      case (d: Double, idx) => ps.setDouble(idx + 1, d)
+      case (f: Float, idx) => ps.setFloat(idx + 1, f)
+      // Allow the user to specify how they want the Date handled based on the input type
+      case (t: _root_.java.sql.Timestamp, idx) => ps.setTimestamp(idx + 1, t)
+      case (d: _root_.java.sql.Date, idx) => ps.setDate(idx + 1, d)
+      case (t: _root_.java.sql.Time, idx) => ps.setTime(idx + 1, t)
+      /* java.util.Date has to go last, since the java.sql date/time classes subclass it. By default we
+       * assume a Timestamp value */
+      case (d: _root_.java.util.Date, idx) => ps.setTimestamp(idx + 1, new _root_.java.sql.Timestamp(d.getTime))
+      case (b: Boolean, idx) => ps.setBoolean(idx + 1, b)
+      case (s: String, idx) => ps.setString(idx + 1, s)
+      case (bn: _root_.java.math.BigDecimal, idx) => ps.setBigDecimal(idx + 1, bn)
+      case (obj, idx) => ps.setObject(idx + 1, obj)
+    }
+    ps
+  }
+
   /**
    * Executes the given parameterized query string with the given parameters.
    * Parameters are substituted in order. For Date/Time types, passing a java.util.Date will result in a
@@ -392,27 +420,7 @@ object DB extends Loggable {
    */
   def runQuery(query: String, params: List[Any], connectionIdentifier: ConnectionIdentifier): (List[String], List[List[String]]) = {
     use(connectionIdentifier)(conn => prepareStatement(query, conn) {
-        ps =>
-        params.zipWithIndex.foreach {
-          case (null, idx) => ps.setNull(idx + 1, Types.VARCHAR)
-          case (i: Int, idx) => ps.setInt(idx + 1, i)
-          case (l: Long, idx) => ps.setLong(idx + 1, l)
-          case (d: Double, idx) => ps.setDouble(idx + 1, d)
-          case (f: Float, idx) => ps.setFloat(idx + 1, f)
-            // Allow the user to specify how they want the Date handled based on the input type
-          case (t: _root_.java.sql.Timestamp, idx) => ps.setTimestamp(idx + 1, t)
-          case (d: _root_.java.sql.Date, idx) => ps.setDate(idx + 1, d)
-          case (t: _root_.java.sql.Time, idx) => ps.setTime(idx + 1, t)
-            /* java.util.Date has to go last, since the java.sql date/time classes subclass it. By default we
-             * assume a Timestamp value */
-          case (d: _root_.java.util.Date, idx) => ps.setTimestamp(idx + 1, new _root_.java.sql.Timestamp(d.getTime))
-          case (b: Boolean, idx) => ps.setBoolean(idx + 1, b)
-          case (s: String, idx) => ps.setString(idx + 1, s)
-          case (bn: _root_.java.math.BigDecimal, idx) => ps.setBigDecimal(idx + 1, bn)
-          case (obj, idx) => ps.setObject(idx + 1, obj)
-        }
-
-        resultSetTo(ps.executeQuery)
+        ps => resultSetTo(setPreparedParams(ps, params).executeQuery)
       })
   }
 
@@ -433,30 +441,30 @@ object DB extends Loggable {
    */
   def performQuery(query: String, params: List[Any], connectionIdentifier: ConnectionIdentifier): (List[String], List[List[Any]]) = {
     use(connectionIdentifier)(conn => prepareStatement(query, conn) {
-        ps =>
-        params.zipWithIndex.foreach {
-          case (null, idx) => ps.setNull(idx + 1, Types.VARCHAR)
-          case (i: Int, idx) => ps.setInt(idx + 1, i)
-          case (l: Long, idx) => ps.setLong(idx + 1, l)
-          case (d: Double, idx) => ps.setDouble(idx + 1, d)
-          case (f: Float, idx) => ps.setFloat(idx + 1, f)
-            // Allow the user to specify how they want the Date handled based on the input type
-          case (t: _root_.java.sql.Timestamp, idx) => ps.setTimestamp(idx + 1, t)
-          case (d: _root_.java.sql.Date, idx) => ps.setDate(idx + 1, d)
-          case (t: _root_.java.sql.Time, idx) => ps.setTime(idx + 1, t)
-            /* java.util.Date has to go last, since the java.sql date/time classes subclass it. By default we
-             * assume a Timestamp value */
-          case (d: _root_.java.util.Date, idx) => ps.setTimestamp(idx + 1, new _root_.java.sql.Timestamp(d.getTime))
-          case (b: Boolean, idx) => ps.setBoolean(idx + 1, b)
-          case (s: String, idx) => ps.setString(idx + 1, s)
-          case (bn: _root_.java.math.BigDecimal, idx) => ps.setBigDecimal(idx + 1, bn)
-          case (obj, idx) => ps.setObject(idx + 1, obj)
-        }
-
-        resultSetToAny(ps.executeQuery)
+        ps => resultSetToAny(setPreparedParams(ps, params).executeQuery)
       })
   }
 
+  /**
+   * Executes the given parameterized update string with the given parameters.
+   * Parameters are substituted in order. For Date/Time types, passing a java.util.Date will result in a
+   * Timestamp parameter. If you want a specific SQL Date/Time type, use the corresponding
+   * java.sql.Date, java.sql.Time, or java.sql.Timestamp classes.
+   */
+  def runUpdate(query: String, params: List[Any]): Int =
+  runUpdate(query, params, DefaultConnectionIdentifier)
+
+  /**
+   * Executes the given parameterized update string with the given parameters.
+   * Parameters are substituted in order. For Date/Time types, passing a java.util.Date will result in a
+   * Timestamp parameter. If you want a specific SQL Date/Time type, use the corresponding
+   * java.sql.Date, java.sql.Time, or java.sql.Timestamp classes.
+   */
+  def runUpdate(query: String, params: List[Any], connectionIdentifier: ConnectionIdentifier): Int = {
+    use(connectionIdentifier)(conn => prepareStatement(query, conn) {
+        ps => setPreparedParams(ps, params).executeUpdate
+      })
+  }
 
   def runQuery(query: String): (List[String], List[List[String]]) =
     use(DefaultConnectionIdentifier)(conn => exec(conn, query)(resultSetTo))
@@ -923,6 +931,7 @@ object DB extends Loggable {
        "then",
        "thread",
        "time",
+       "timestamp", // reserved in Oracle
        "to",
        "tracing",
        "transaction",

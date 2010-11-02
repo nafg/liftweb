@@ -82,6 +82,13 @@ class Boot {
     SessionMaster.sessionCheckFuncs = SessionMaster.sessionCheckFuncs :::
     List(SessionChecker)
 
+    // Uncomment the lines below to see how
+    // a Lift app looks when it's stateless
+    /*
+    LiftRules.statelessTest.prepend {
+      case _ => true
+    }*/
+
     LiftRules.snippetDispatch.append(Map("runtime_stats" -> RuntimeStats))
 
     /*
@@ -176,6 +183,8 @@ object MenuInfo {
       Menu("Evalutation Order") / "templating" / "eval_order",
       Menu("Select <div>s") / "templating" / "selectomatic",
       Menu("Simple Wizard") / "simple_wizard",
+      Menu("Lazy Loading") / "lazy",
+      Menu("Parallel Snippets") / "parallel",
       Menu("<head/> tag") / "templating"/ "head"),
     Menu("Web Services") / "ws" >> noGAE,
     Menu("Localization") / "lang",
@@ -192,6 +201,7 @@ object MenuInfo {
       Menu("Wizard") / "wiz",
       Menu("Wizard Challenge") / "wiz2",
       Menu("Simple Screen") / "simple_screen",
+      Menu("Variable Screen") / "variable_screen",
       Menu("Arc Challenge #1") / "arc",
       Menu("File Upload") / "file_upload",
       Menu(Loc("login", Link(List("login"), true, "/login/index"),

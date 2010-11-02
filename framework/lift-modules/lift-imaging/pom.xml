@@ -27,10 +27,10 @@
   -->
   <parent>
     <groupId>net.liftweb</groupId>
-    <artifactId>lift-modules</artifactId>
-    <version>2.0-SNAPSHOT</version>
+    <artifactId>lift-modules_2.8.0</artifactId>
+    <version>2.2-SNAPSHOT</version>
   </parent>
-  <artifactId>lift-imaging</artifactId>
+  <artifactId>lift-imaging_2.8.0</artifactId>
 
   <!--
     ~ More Project Information
@@ -49,12 +49,24 @@
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>lift-util</artifactId>
+      <artifactId>lift-util_${scala.version}</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.sanselan</groupId>
       <artifactId>sanselan</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.scala-tools.testing</groupId>
+      <artifactId>specs_${scala.version}</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.scala-tools.testing</groupId>
+      <artifactId>scalacheck_${scala.version}</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
     </dependency>
   </dependencies>
 

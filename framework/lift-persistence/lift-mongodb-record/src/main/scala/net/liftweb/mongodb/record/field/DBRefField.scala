@@ -1,23 +1,29 @@
 /*
-* Copyright 2010 WorldWide Conferencing, LLC
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2010 WorldWide Conferencing, LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package net.liftweb {
-package mongodb.record.field {
+package mongodb {
+package record {
+package field {
 
 import _root_.net.liftweb.common.{Box, Empty, Failure, Full}
 import _root_.net.liftweb.http.js.JE.Str
 import _root_.net.liftweb.json.JsonAST.{JNothing, JObject, JValue}
-import _root_.net.liftweb.record.{Field, Record}
+import _root_.net.liftweb.record.{Field, MandatoryTypedField, Record}
+import _root_.scala.xml.NodeSeq
 
 import com.mongodb.{BasicDBObject, BasicDBObjectBuilder, DBObject, DBRef}
 import com.mongodb.util.JSON
@@ -26,36 +32,34 @@ import org.bson.types.ObjectId
 /*
 * Field for storing a DBRef
 */
-//abstract class MongoRefField[OwnerType <: MongoRecord[OwnerType]](rec: OwnerType)
-//abstract class MongoRefField[OwnerType <: MongoRecord[OwnerType], RefType <: MongoMetaRecord[RefType]](rec: OwnerType, ref: RefType)
 class DBRefField[OwnerType <: MongoRecord[OwnerType], RefType <: MongoRecord[RefType]](rec: OwnerType, ref: RefType)
-  extends Field[DBRef, OwnerType] {
+  extends Field[DBRef, OwnerType] with MandatoryTypedField[DBRef] {
 
   /*
   * get the referenced object
   */
-  def obj = synchronized {  
-    if (!_calcedObj) {  
-      _calcedObj = true  
+  def obj = synchronized {
+    if (!_calcedObj) {
+      _calcedObj = true
       this._obj = ref.meta.findAny(value.getId)
-    }  
-    _obj  
+    }
+    _obj
   }
 
   def cached_? : Boolean = synchronized { _calcedObj }
 
-  def primeObj(obj: Box[RefType]) = synchronized {  
+  def primeObj(obj: Box[RefType]) = synchronized {
     _obj = obj
     _calcedObj = true
   }
-  
-  private var _obj: Box[RefType] = Empty  
+
+  private var _obj: Box[RefType] = Empty
   private var _calcedObj = false
 
   def asJs = Str(toString)
-  
+
   def asJValue = (JNothing: JValue) // not implemented
-  
+
   def setFromJValue(jvalue: JValue) = Empty // not implemented
 
   def asXHtml = <div></div>
@@ -66,7 +70,7 @@ class DBRefField[OwnerType <: MongoRecord[OwnerType], RefType <: MongoRecord[Ref
     case ref: DBRef => Full(set(ref))
     case Some(ref: DBRef) => Full(set(ref))
     case Full(ref: DBRef) => Full(set(ref))
-    case seq: Seq[_] if !seq.isEmpty => seq.map(setFromAny)(0)
+    case seq: Seq[_] if !seq.isEmpty => seq.map(setFromAny).apply(0)
     case (s: String) :: _ => setFromString(s)
     case null => Full(set(null))
     case s: String => setFromString(s)
@@ -86,10 +90,12 @@ class DBRefField[OwnerType <: MongoRecord[OwnerType], RefType <: MongoRecord[Ref
     })
   }
 
-  def toForm = <div></div>
+  def toForm: Box[NodeSeq] = Empty
 
   def owner = rec
 }
 
+}
+}
 }
 }

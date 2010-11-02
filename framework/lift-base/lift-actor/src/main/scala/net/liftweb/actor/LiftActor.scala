@@ -33,12 +33,19 @@ object LAScheduler {
    */
   @volatile var threadPoolSize = 16 // issue 194
 
+  @volatile var maxThreadPoolSize = threadPoolSize * 25
+
   @volatile
   var createExecutor: () => ILAExecute = () => {
     new ILAExecute {
-      import _root_.java.util.concurrent.{Executors, Executor}
+      import _root_.java.util.concurrent._
 
-      private val es = Executors.newFixedThreadPool(threadPoolSize)
+      private val es = // Executors.newFixedThreadPool(threadPoolSize)
+        new ThreadPoolExecutor(threadPoolSize, 
+                               maxThreadPoolSize,
+                               60,
+                               TimeUnit.SECONDS,
+                               new LinkedBlockingQueue)
 
       def execute(f: () => Unit): Unit =
       es.execute(new Runnable{def run() {f()}})
@@ -83,8 +90,10 @@ trait SpecializedLiftActor[T] extends SimpleActor[T]  {
     var next: MailboxItem = _
     var prev: MailboxItem = _
 
+    /*
     def find(f: MailboxItem => Boolean): Box[MailboxItem] =
     if (f(this)) Full(this) else next.find(f)
+    */
 
     def remove() {
       val newPrev = prev
@@ -110,10 +119,18 @@ trait SpecializedLiftActor[T] extends SimpleActor[T]  {
   }
 
   private class SpecialMailbox extends MailboxItem(null.asInstanceOf[T]) {
-    override def find(f: MailboxItem => Boolean): Box[MailboxItem] = Empty
+    // override def find(f: MailboxItem => Boolean): Box[MailboxItem] = Empty
     next = this
     prev = this
   }
+
+  private def findMailboxItem(start: MailboxItem, f: MailboxItem => Boolean): Box[MailboxItem] =
+    start match {
+      case x: SpecialMailbox => Empty
+      case x if f(x) => Full(x)
+      case x => findMailboxItem(x.next, f)
+    }
+                            
 
   def !(msg: T): Unit = {
     val toDo: () => Unit = baseMailbox.synchronized {
@@ -214,7 +231,7 @@ protected def around[R](f: => R): R = aroundLoans match {
               val hiPriPfBox = highPriorityReceive
               if (hiPriPfBox.isDefined) {
                 val hiPriPf = hiPriPfBox.open_!
-                baseMailbox.next.find(mb => testTranslate(hiPriPf.isDefinedAt)(mb.item)) match {
+                findMailboxItem(baseMailbox.next, mb => testTranslate(hiPriPf.isDefinedAt)(mb.item)) match {
                   case Full(mb) =>
                     mb.remove()
                     try {
@@ -237,7 +254,7 @@ protected def around[R](f: => R): R = aroundLoans match {
 
             val pf = messageHandler
 
-        baseMailbox.next.find(mb => testTranslate(pf.isDefinedAt)(mb.item)) match {
+        findMailboxItem(baseMailbox.next, mb => testTranslate(pf.isDefinedAt)(mb.item)) match {
           case Full(mb) =>
             mb.remove()
             try {

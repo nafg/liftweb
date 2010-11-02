@@ -23,7 +23,7 @@ import _root_.scala.collection.mutable.{ListBuffer}
 import _root_.net.liftweb.util.Helpers._
 import _root_.net.liftweb.util._
 import _root_.net.liftweb.json._
-import _root_.scala.xml.{NodeSeq, Text, Elem, Unparsed, Node, Group, Null, PrefixedAttribute, UnprefixedAttribute}
+import _root_.scala.xml.{NodeSeq, Text, Elem, Node, Group, Null, PrefixedAttribute, UnprefixedAttribute}
 import _root_.scala.collection.immutable.TreeMap
 import _root_.scala.collection.mutable.{HashSet, ListBuffer}
 import _root_.net.liftweb.http.js._
@@ -205,22 +205,32 @@ trait ListenerManager {
   protected def lowPriority: PartialFunction[Any, Unit] = Map.empty
 }
 
-trait CometListener extends CometListenee
+trait CometListener extends CometListenee {
+  self: CometActor =>
+}
 
-trait CometListenee extends CometActor {
+trait LocalSetupAndShutdown {
+  protected def localSetup(): Unit
+
+  protected def localShutdown(): Unit
+}
+
+trait CometListenee extends LocalSetupAndShutdown {
+  self: CometActor =>
   protected def registerWith: SimpleActor[Any]
 
   /**
-   * Override this in order to selectively update listeners based on the given message.
+   * Override this in order to selectively update listeners based on the given message.  This method has been deprecated because it's executed in a seperate context from the session's context.  This causes problems.  Accept/reject logic should be done in the partial function that handles the message.
    */
+  @deprecated
   protected def shouldUpdate: PartialFunction[Any, Boolean] = { case _ => true}
 
-  override protected def localSetup() {
+  abstract override protected def localSetup() {
     registerWith ! AddAListener(this, shouldUpdate)
     super.localSetup()
   }
 
-  override protected def localShutdown() {
+  abstract override protected def localShutdown() {
     registerWith ! RemoveAListener(this)
     super.localShutdown()
   }
@@ -282,7 +292,7 @@ trait CometActor extends LiftActor with LiftCometActor with BindHelpers {
 
   def theSession = _theSession
 
-  private var _defaultXml: NodeSeq = _
+  @volatile private var _defaultXml: NodeSeq = _
 
   def defaultXml = _defaultXml
 
@@ -392,12 +402,17 @@ trait CometActor extends LiftActor with LiftCometActor with BindHelpers {
   /**
    * Creates the span element acting as the real estate for commet rendering.
    */
-  def buildSpan(time: Long, xml: NodeSeq): NodeSeq =
+  def buildSpan(time: Long, xml: NodeSeq): NodeSeq = {
     Elem(parentTag.prefix, parentTag.label, parentTag.attributes,
-      parentTag.scope, Group(xml)) %
-            (new UnprefixedAttribute("id", Text(spanId), Null)) %
-            (new PrefixedAttribute("lift", "when", Text(time.toString), Null))
-
+         parentTag.scope, Group(xml)) %
+    new UnprefixedAttribute("id", 
+                            Text(spanId), 
+                            if (time > 0L) {
+                              new PrefixedAttribute("lift", "when", 
+                                                    time.toString, 
+                                                    Null)
+                            } else {Null})
+  }
 
   def messageHandler = {
     val what = composeFunction
@@ -476,6 +491,17 @@ trait CometActor extends LiftActor with LiftCometActor with BindHelpers {
       // this ! RelinkToActorWatcher
       localSetup
       performReRender(true)
+
+    /**
+     * Update the defaultXml... sent in dev mode
+     */
+    case UpdateDefaultXml(xml) => {
+      val redo = xml != _defaultXml
+      
+      _defaultXml = xml
+
+      if (redo) performReRender(false)
+    }
 
     case AskRender =>
       askingWho match {
@@ -562,12 +588,21 @@ trait CometActor extends LiftActor with LiftCometActor with BindHelpers {
    * RenderOut (including NodeSeq).  Thus, if you don't declare the return
    * turn to be something other than RenderOut and return something that's
    * coersable into RenderOut, the compiler "does the right thing"(tm) for you.
+   * <br/>
+   * There are implicit conversions for NodeSeq, so you can return a pile of
+   * XML right here.  There's an implicit conversion for NodeSeq => NodeSeq,
+   * so you can return a function (e.g., a CssBindFunc) that will convert
+   * the defaultXml to the correct output.  There's an implicit conversion
+   * from JsCmd, so you can return a pile of JavaScript that'll be shipped
+   * to the browser.
    */
   def render: RenderOut
 
   def reRender(sendAll: Boolean) {
     this ! ReRender(sendAll)
   }
+
+  def reRender() {reRender(false)}
 
   private def performReRender(sendAll: Boolean) {
     lastRenderTime = Helpers.nextNum
@@ -649,9 +684,12 @@ trait CometActor extends LiftActor with LiftCometActor with BindHelpers {
     performReRender(false)
   }
 
-  implicit def xmlToXmlOrJsCmd(in: NodeSeq): RenderOut = new RenderOut(Full(in), fixedRender, if (autoIncludeJsonCode) Full(jsonToIncludeInCode) else Empty, Empty, false)
+  protected implicit def nsToNsFuncToRenderOut(f: NodeSeq => NodeSeq) =
+    new RenderOut((Box !! defaultXml).map(f), fixedRender, if (autoIncludeJsonCode) Full(jsonToIncludeInCode) else Empty, Empty, false)
 
-  implicit def jsToXmlOrJsCmd(in: JsCmd): RenderOut = new RenderOut(Empty, Empty, if (autoIncludeJsonCode) Full(in & jsonToIncludeInCode) else Full(in), Empty, false)
+  protected implicit def arrayToRenderOut(in: Seq[Node]): RenderOut = new RenderOut(Full(in: NodeSeq), fixedRender, if (autoIncludeJsonCode) Full(jsonToIncludeInCode) else Empty, Empty, false)
+
+  protected implicit def jsToXmlOrJsCmd(in: JsCmd): RenderOut = new RenderOut(Empty, Empty, if (autoIncludeJsonCode) Full(in & jsonToIncludeInCode) else Full(in), Empty, false)
 
   implicit def pairToPair(in: (String, Any)): (String, NodeSeq) = (in._1, Text(in._2 match {case null => "null" case s => s.toString}))
 
@@ -758,10 +796,10 @@ private[http] class XmlOrJsCmd(val id: String,
             ((if (ignoreHtmlOnJs) Empty else xml, javaScript, displayAll) match {
               case (Full(xml), Full(js), false) => LiftRules.jsArtifacts.setHtml(id, Helpers.stripHead(xml)) & JsCmds.JsTry(js, false)
               case (Full(xml), _, false) => LiftRules.jsArtifacts.setHtml(id, Helpers.stripHead(xml))
-              case (Full(xml), Full(js), true) => LiftRules.jsArtifacts.setHtml(id + "_outer", (fixedXhtml.openOr(Text("")) ++ 
-                spanFunc(0, Helpers.stripHead(xml)))) & JsCmds.JsTry(js, false)
-              case (Full(xml), _, true) => LiftRules.jsArtifacts.setHtml(id + "_outer", (fixedXhtml.openOr(Text("")) ++ 
-                spanFunc(0, Helpers.stripHead(xml))))
+              case (Full(xml), Full(js), true) => LiftRules.jsArtifacts.setHtml(id + "_outer", ( 
+                spanFunc(0, Helpers.stripHead(xml)) ++ fixedXhtml.openOr(Text("")))) & JsCmds.JsTry(js, false)
+              case (Full(xml), _, true) => LiftRules.jsArtifacts.setHtml(id + "_outer", ( 
+                spanFunc(0, Helpers.stripHead(xml)) ++ fixedXhtml.openOr(Text(""))))
               case (_, Full(js), _) => js
               case _ => JsCmds.Noop
             }) & JsCmds.JsTry(JsCmds.Run("destroy_" + id + " = function() {" + (destroy.openOr(JsCmds.Noop).toJsCmd) + "};"), false)
@@ -776,6 +814,11 @@ private[http] class XmlOrJsCmd(val id: String,
   def outSpan: NodeSeq = Script(Run("var destroy_" + id + " = function() {" + (destroy.openOr(JsCmds.Noop).toJsCmd) + "}")) ++
           fixedXhtml.openOr(Text(""))
 }
+
+/**
+ * Update the comet XML on each page reload in dev mode
+ */
+case class UpdateDefaultXml(xml: NodeSeq) extends CometMessage
 
 case class PartialUpdateMsg(cmd: () => JsCmd) extends CometMessage
 case object AskRender extends CometMessage
@@ -823,6 +866,9 @@ object Notice {
 }
 
 /**
+ * The RenderOut case class contains the rendering for the CometActor.
+ * Because of the implicit conversions, RenderOut can come from 
+ * <br/>
  * @param xhtml is the "normal" render body
  * @param fixedXhtml is the "fixed" part of the body.  This is ignored unless reRender(true)
  * @param script is the script to be executed on render.  This is where you want to put your script

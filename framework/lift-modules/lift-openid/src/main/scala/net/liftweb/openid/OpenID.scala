@@ -115,6 +115,12 @@ trait OpenIDVendor {
       })
   }
 
+  /**
+   * Based on an exception, generate an error message
+   */
+  protected def generateOpenIDFailureMessage(exception: Exception): String =
+    (S ? "OpenID Failure") + ": " + exception.getMessage
+
   def dispatchPF: LiftRules.DispatchPF = NamedPF("Login default") {
     case Req(PathRoot :: LogOutPath :: _, "", _) =>
       () => {
@@ -129,9 +135,11 @@ trait OpenIDVendor {
           RedirectBackTo(S.referer)
           Full(OpenIDObject.is.authRequest(r.param(PostParamName).get, "/"+PathRoot+"/"+ResponsePath))
         } catch {
-          case e => S.error("OpenID Failure: "+e.getMessage)
+          case e: Exception => {
+            S.error(generateOpenIDFailureMessage(e))
             // FIXME -- log the name and the error
             Full(RedirectResponse(S.referer openOr "/", S responseCookies :_*))
+          }
         }
       }
 
@@ -161,11 +169,24 @@ trait SimpleOpenIDVendor extends OpenIDVendor {
 
   def currentUser = OpenIDUser.is
 
+  /**
+   * Generate a welcome message for the OpenID identifier
+   */
+  protected def generateWelcomeMessage(id: Identifier): String =
+    (S ? "Welcome")+ ": "+ id
+
+  /**
+   * If verification failed, generate a polite message to that
+   * effect.
+   */
+  protected def generateAuthenticationFailure(res: VerificationResult): String =
+    S ? "Failed to authenticate"
+
   def postLogin(id: Box[Identifier],res: VerificationResult): Unit = {
     id match {
-      case Full(id) => S.notice("Welcome "+id)
+      case Full(id) => S.notice(generateWelcomeMessage(id))
 
-      case _ => S.error("Failed to authenticate")
+      case _ => S.error(generateAuthenticationFailure(res))
     }
 
     OpenIDUser(id)
@@ -175,6 +196,9 @@ trait SimpleOpenIDVendor extends OpenIDVendor {
     OpenIDUser.remove
   }
 
+  /**
+   * Generate a welcome message.
+   */
   def displayUser(in: UserType): NodeSeq = Text("Welcome "+in)
 
   def createAConsumer = new AnyRef with OpenIDConsumer[UserType]
@@ -190,12 +214,12 @@ trait OpenIDConsumer[UserType] extends Logger {
   val manager = new ConsumerManager
 
   var onComplete: Box[(Box[Identifier], Box[VerificationResult], Box[Exception]) => LiftResponse] = Empty
-  
+
   /**
    * Set this to a function that can modify (eg add extensions) to the auth request before send
    */
   var beforeAuth: Box[(DiscoveryInformation,AuthRequest) => Unit] = Empty
-  
+
   // --- placing the authentication request ---
   def authRequest(userSuppliedString: String, targetUrl: String): LiftResponse =
   {
@@ -218,7 +242,7 @@ trait OpenIDConsumer[UserType] extends Logger {
     val authReq = manager.authenticate(discovered, returnToUrl)
 
     beforeAuth foreach {f => f(discovered, authReq)}
-    
+
     if (! discovered.isVersion2() )
     {
       // Option 1: GET HTTP-redirect to the OpenID Provider endpoint
@@ -258,7 +282,7 @@ trait OpenIDConsumer[UserType] extends Logger {
     // extract the parameters from the authentication response
     // (which comes in as a HTTP request from the OpenID provider)
     val paramMap = new java.util.HashMap[String, String]
-    httpReq.params.foreach(e => paramMap.put(e.name, e.values.firstOption getOrElse null))
+    httpReq.params.foreach(e => paramMap.put(e.name, e.values.headOption getOrElse null))
     val response =	new ParameterList(paramMap);
 
     // retrieve the previously stored discovery information

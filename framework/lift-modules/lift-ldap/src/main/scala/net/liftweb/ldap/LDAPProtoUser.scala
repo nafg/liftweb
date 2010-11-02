@@ -1,11 +1,21 @@
-/**
- * 
- * Patch made for Franz Bettang franz at bett dot ag on December 01, 2009
- *  - Outsources the ldapsearch from the login method
- *  - Redirected to the homepage after login
+/*
+ * Copyright 2010 WorldWide Conferencing, LLC
  *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-package net.liftweb.ldap
+
+package net.liftweb {
+package ldap {
 
 import javax.naming.directory.{Attributes}
 import scala.util.matching.{Regex}
@@ -22,13 +32,16 @@ import net.liftweb.common.{Box, Empty, Full}
 
 import Helpers._
 
+import scala.util.matching.{Regex}
+import scala.xml.{Elem, NodeSeq}
+
 trait MetaLDAPProtoUser[ModelType <: LDAPProtoUser[ModelType]] extends MetaMegaProtoUser[ModelType] {
     self: ModelType =>
 
-    override def signupFields: List[BaseOwnedMappedField[ModelType]] = uid ::
+    override def signupFields: List[FieldPointerType] = uid ::
         cn :: dn :: Nil
 
-    override def fieldOrder: List[BaseOwnedMappedField[ModelType]] = uid ::
+    override def fieldOrder: List[FieldPointerType] = uid ::
         cn :: dn :: Nil
 
     /**
@@ -67,6 +80,9 @@ trait MetaLDAPProtoUser[ModelType <: LDAPProtoUser[ModelType]] extends MetaMegaP
      * Error messages
      */
     def loginErrorMessage: String = "Unable to login with : %s"
+
+  def commonNameAttributeName = "cn"
+  def uidAttributeName = "uid"
 
     override def loginXhtml : Elem = {
         <form method="post" action={S.uri}>
@@ -127,12 +143,12 @@ trait MetaLDAPProtoUser[ModelType <: LDAPProtoUser[ModelType]] extends MetaMegaP
 
     def bindAttributes(attrs: Attributes) = {
         for {
-            theCn <- Box !! attrs.get("cn").get
-            theUid <- Box !! attrs.get("uid").get
+            theCn <- Box !! attrs.get(commonNameAttributeName).get
+            theUid <- Box !! attrs.get(uidAttributeName).get
         }
         {
-            cn(attrs.get("cn").get.toString)
-            uid(attrs.get("uid").get.toString)
+            cn(theCn.toString)
+            uid(theUid.toString)
         }
     }
 }
@@ -169,7 +185,7 @@ trait LDAPProtoUser[T <: LDAPProtoUser[T]] extends MegaProtoUser[T] {
         return ldapRoles.get
     }
 
-    def setRoles(userDn: String, ldapVendor: LDAPVendor): AnyRef = {
+    def setRoles(userDn: String, ldapVendor: LDAPVendor) {
         def getGroupNameFromDn(dn: String): String = {
             val regex = new Regex(rolesNameRegex)
 
@@ -181,8 +197,9 @@ trait LDAPProtoUser[T <: LDAPProtoUser[T]] extends MegaProtoUser[T] {
         val filter = rolesSearchFilter.format(userDn)
 
         val groups = ldapVendor.search(filter)
-        groups.foreach(g => {
-            ldapRoles.set(ldapRoles.get + getGroupNameFromDn(g))
-        })
+        groups foreach { g => ldapRoles.set(ldapRoles.get :+ getGroupNameFromDn(g)) }
     }
+}
+
+}
 }

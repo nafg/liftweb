@@ -43,20 +43,25 @@ object JsonParser {
   /** Return parsed JSON.
    * @throws ParseException is thrown if parsing fails
    */
-  def parse(s: String): JValue = parse(new Buffer(new StringReader(s)))
+  def parse(s: String): JValue = parse(new Buffer(new StringReader(s), false))
 
   /** Return parsed JSON.
+   * @param closeAutomatically true (default) if the Reader is automatically closed on EOF
    * @throws ParseException is thrown if parsing fails
    */
-  def parse(s: Reader): JValue = parse(new Buffer(s))
+  def parse(s: Reader, closeAutomatically: Boolean = true): JValue = 
+    parse(new Buffer(s, closeAutomatically))
 
   /** Return parsed JSON.
    */
-  def parseOpt(s: String): Option[JValue] = try { Some(parse(s)) } catch { case e: Exception => None }
+  def parseOpt(s: String): Option[JValue] = 
+    try { Some(parse(s)) } catch { case e: Exception => None }
 
   /** Return parsed JSON.
+   * @param closeAutomatically true (default) if the Reader is automatically closed on EOF
    */
-  def parseOpt(s: Reader): Option[JValue] = try { Some(parse(s)) } catch { case e: Exception => None }
+  def parseOpt(s: Reader, closeAutomatically: Boolean = true): Option[JValue] = 
+    try { Some(parse(s, closeAutomatically)) } catch { case e: Exception => None }
 
   /** Parse in pull parsing style.
    * Use <code>p.nextToken</code> to parse tokens one by one from a string.
@@ -66,9 +71,10 @@ object JsonParser {
 
   /** Parse in pull parsing style.
    * Use <code>p.nextToken</code> to parse tokens one by one from a stream.
+   * The Reader must be closed when parsing is stopped.
    * @see net.liftweb.json.JsonParser.Token
    */
-  def parse[A](s: Reader, p: Parser => A): A = p(new Parser(new Buffer(s)))
+  def parse[A](s: Reader, p: Parser => A): A = p(new Parser(new Buffer(s, false)))
 
   private def parse(buf: Buffer): JValue = {
     try {
@@ -79,19 +85,14 @@ object JsonParser {
     } finally { buf.release }
   }
   
-  private[json] def unquote(string: String): String = unquote(new JsonParser.Buffer(new java.io.StringReader(string)))
+  private[json] def unquote(string: String): String = 
+    unquote(new JsonParser.Buffer(new java.io.StringReader(string), false))
   
   private[json] def unquote(buf: JsonParser.Buffer): String = {
-    val EOF = (-1).asInstanceOf[Char]
-    
     def unquote0(buf: JsonParser.Buffer, base: String): String = {
       val s = new java.lang.StringBuilder(base)
       var c = '\\'
-      while (c != EOF) {
-        if (c == '"') {
-          return s.toString
-        }
-
+      while (c != '"') {
         if (c == '\\') {
           buf.next match {
             case '"'  => s.append('"')
@@ -111,19 +112,18 @@ object JsonParser {
         } else s.append(c)
         c = buf.next
       }
-      error("expected string end")
+      s.toString
     }
     
     buf.mark
     var c = buf.next
-    while (c != EOF) {
-      if (c == '"') return buf.substring
+    while (c != '"') {
       if (c == '\\') {
         return unquote0(buf, buf.substring)
       }
       c = buf.next
     }
-    error("expected string end")
+    buf.substring
   }
 
   private val astParser = (p: Parser) => {
@@ -233,8 +233,7 @@ object JsonParser {
       def parseString: String = {
         try {
           unquote(buf)
-        }
-        catch {
+        } catch {
           case _ => fail("unexpected string end")
         }
       }
@@ -260,7 +259,9 @@ object JsonParser {
 
       while (true) {
         buf.next match {
-          case c if EOF == c => return End
+          case c if EOF == c => 
+            buf.automaticClose
+            return End
           case '{' =>
             blocks.addFirst(OBJECT)
             fieldNameMode = true
@@ -308,6 +309,7 @@ object JsonParser {
           case c => fail("unknown token " + c)
         }
       }
+      buf.automaticClose
       End
     }
 
@@ -319,30 +321,24 @@ object JsonParser {
   /* Buffer used to parse JSON.
    * Buffer is divided to one or more segments (preallocated in Segments pool).
    */
-  private[json] class Buffer(in: Reader) {
-    var length = -1
+  private[json] class Buffer(in: Reader, closeAutomatically: Boolean) {
+    var offset = 0
     var curMark = -1
     var curMarkSegment = -1
-    private[this] var segments: List[Segment] = Nil
-    private[this] var segment: Array[Char] = _
+    private[this] var segments: List[Segment] = List(Segments.apply())
+    private[this] var segment: Array[Char] = segments.head.seg
     private[this] var cur = 0 // Pointer which points current parsing location
     private[this] var curSegmentIdx = 0 // Pointer which points current segment
-    read
 
     def mark = { curMark = cur; curMarkSegment = curSegmentIdx }
     def back = cur = cur-1
 
     def next: Char = {
-      try {
+      if (cur == offset && read < 0) EOF
+      else {
         val c = segment(cur)
-        if (cur >= length) return EOF
-        cur = cur+1
+        cur += 1
         c
-      } catch {
-        // suprisingly catching IndexOutOfBounds is faster than: if (cur == segment.length)
-        case e =>
-          read
-          if (length == -1) EOF else next
       }
     }
 
@@ -374,21 +370,25 @@ object JsonParser {
       }
     }
 
-    def near = new String(segment, (cur-20) max 0, (cur+20) min length)
+    def near = new String(segment, (cur-20) max 0, (cur+20) min offset)
 
     def release = segments.foreach(Segments.release)
 
+    private[JsonParser] def automaticClose = if (closeAutomatically) in.close
+
     private[this] def read = {
-      try {
+      if (offset >= segment.length) {
         val newSegment = Segments.apply()
-        length = in.read(newSegment.seg)
+        offset = 0
         segment = newSegment.seg
         segments = segments ::: List(newSegment)
-        cur = 0
-        curSegmentIdx = segments.length-1
-      } finally {
-        if (length < segment.length) in.close
+        curSegmentIdx = segments.length - 1
       }
+
+      val length = in.read(segment, offset, segment.length-offset)
+      cur = offset
+      offset += length
+      length
     }
   }
 

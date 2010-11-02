@@ -224,8 +224,8 @@ object JsonAST {
       def find(json: JValue): Option[JValue] = {
         if (p(json)) return Some(json)
         json match {
-          case JObject(l) => l.flatMap(find _).firstOption
-          case JArray(l) => l.flatMap(find _).firstOption
+          case JObject(l) => l.flatMap(find _).headOption
+          case JArray(l) => l.flatMap(find _).headOption
           case JField(_, value) => find(value)
           case _ => None
         }
@@ -284,7 +284,7 @@ object JsonAST {
      * JObject(JField("name", JString("joe")) :: Nil).extract[Foo] == Person("joe")
      * </pre>
      */
-    def extract[A](implicit formats: Formats, mf: scala.reflect.Manifest[A]): A = 
+    def extract[A](implicit formats: Formats, mf: scala.reflect.Manifest[A]): A =
       Extraction.extract(this)(formats, mf)
 
     /** Extract a case class from a JSON.
@@ -294,7 +294,7 @@ object JsonAST {
      * JObject(JField("name", JString("joe")) :: Nil).extractOpt[Foo] == Some(Person("joe"))
      * </pre>
      */
-    def extractOpt[A](implicit formats: Formats, mf: scala.reflect.Manifest[A]): Option[A] = 
+    def extractOpt[A](implicit formats: Formats, mf: scala.reflect.Manifest[A]): Option[A] =
       Extraction.extractOpt(this)(formats, mf)
   }
 
@@ -330,7 +330,7 @@ object JsonAST {
   case class JObject(obj: List[JField]) extends JValue {
     type Values = Map[String, Any]
     def values = Map() ++ obj.map(_.values : (String, Any))
-    
+
     override def equals(that: Any): Boolean = that match {
       case o: JObject => Set(obj.toArray: _*) == Set(o.obj.toArray: _*)
       case _ => false
@@ -340,7 +340,7 @@ object JsonAST {
     type Values = List[Any]
     def values = arr.map(_.values)
     override def apply(i: Int): JValue = arr(i)
-    
+
     override def equals(that: Any): Boolean = that match {
       case a: JArray => Set(arr.toArray: _*) == Set(a.arr.toArray: _*)
       case _ => false
@@ -485,9 +485,7 @@ trait JsonDSL extends Implicits {
 object Printer extends Printer
 trait Printer {
   import java.io._
-  import java.util.IdentityHashMap
   import scala.text._
-  import scala.collection.immutable.Stack
 
   /** Compact printing (no whitespace etc.)
    */
@@ -496,28 +494,17 @@ trait Printer {
   /** Compact printing (no whitespace etc.)
    */
   def compact[A <: Writer](d: Document, out: A): A = {
-    // Non-recursive implementation to support serialization of big structures.
-    var nodes = Stack.Empty.push(d)
-    val visited = new IdentityHashMap[Document, Unit]()
-    while (!nodes.isEmpty) {
-      val cur = nodes.top
-      nodes = nodes.pop
-      cur match {
-        case DocText(s)      => out.write(s)
-        case DocCons(d1, d2) => 
-          if (!visited.containsKey(cur)) {
-            visited.put(cur, ())
-            nodes = nodes.push(cur)
-            nodes = nodes.push(d1)
-          } else {
-            nodes = nodes.push(d2)
-          }
-        case DocBreak        =>
-        case DocNest(_, d)   => nodes = nodes.push(d)
-        case DocGroup(d)     => nodes = nodes.push(d)
-        case DocNil          =>
-      }
+    def layout(docs: List[Document]): Unit = docs match {
+      case Nil                   =>
+      case DocText(s) :: rs      => out.write(s); layout(rs)
+      case DocCons(d1, d2) :: rs => layout(d1 :: d2 :: rs)
+      case DocBreak :: rs        => layout(rs)
+      case DocNest(_, d) :: rs   => layout(d :: rs)
+      case DocGroup(d) :: rs     => layout(d :: rs)
+      case DocNil :: rs          => layout(rs)
     }
+
+    layout(List(d))
     out.flush
     out
   }

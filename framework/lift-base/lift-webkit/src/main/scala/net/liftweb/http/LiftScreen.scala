@@ -38,9 +38,24 @@ private[liftweb] trait AbstractScreen extends Factory {
   if (hasUploadField) new UnprefixedAttribute("enctype", Text("multipart/form-data"), Null) else Null
 
 
-  protected def _register(field: () => FieldContainer) {
-    _fieldList = _fieldList ::: List(field)
+  /**
+   * Add a FieldContainer to the Screen.  A FieldContainer
+   * can contain either a single field (a BaseField) or
+   * a collection of BaseFields.  The key take-away is that
+   * if the LiftScreen or Wizard is a singleton, you can still
+   * display variable number of fields by returning a variable
+   * number of BaseField instances from the FieldContainer.
+   */
+  protected def addFields(fields: () => FieldContainer) {
+    _fieldList = _fieldList ::: List(fields)
   }
+
+  /**
+   * Use addFields
+   * 
+   * @deprecated
+   */
+  protected def _register(field: () => FieldContainer) = addFields(field)
 
   protected def hasUploadField: Boolean = screenFields.foldLeft(false)(_ | _.uploadField_?)
 
@@ -145,7 +160,7 @@ private[liftweb] trait AbstractScreen extends Factory {
   protected object currentField extends ThreadGlobal[FieldIdentifier]
 
   protected class FieldBuilder[T](name: => String,
-                                  default: T,
+                                  default: => T,
                                   manifest: Manifest[T],
                                   help: Box[NodeSeq],
                                   validations: List[T => List[FieldError]],
@@ -208,7 +223,7 @@ private[liftweb] trait AbstractScreen extends Factory {
    * @param default - the default value of the field
    * @param validate - any validation functions
    */
-  protected def builder[T](name: => String, default: T, stuff: FilterOrValidate[T]*)(implicit man: Manifest[T]): FieldBuilder[T] =
+  protected def builder[T](name: => String, default: => T, stuff: FilterOrValidate[T]*)(implicit man: Manifest[T]): FieldBuilder[T] =
   new FieldBuilder[T](name, default, man, Empty, stuff.toList.flatMap{
     case AVal(v) => List(v) case _ => Nil}, stuff.toList.flatMap{
     case AFilter(v) => List(v) case _ => Nil})
@@ -230,7 +245,7 @@ private[liftweb] trait AbstractScreen extends Factory {
    * @param default - the default value of the field
    * @param validate - any validation functions
    */
-  protected def field[T](name: => String, default: T, stuff: FilterOrValidate[T]*)(implicit man: Manifest[T]): Field{type ValueType = T} =
+  protected def field[T](name: => String, default: => T, stuff: FilterOrValidate[T]*)(implicit man: Manifest[T]): Field{type ValueType = T} =
   new FieldBuilder[T](name, default, man, Empty, stuff.toList.flatMap{
     case AVal(v) => List(v) case _ => Nil}, stuff.toList.flatMap{
     case AFilter(v) => List(v) case _ => Nil}).make
@@ -269,7 +284,7 @@ private[liftweb] trait AbstractScreen extends Factory {
    * A validation helper.  Make sure the string is at least a particular
    * length and generate a validation issue if not
    */
-  protected def valMinLen(len: Int, msg: => String): String => List[FieldError] =
+  protected def valMinLen(len: => Int, msg: => String): String => List[FieldError] =
   s => s match {
     case str if (null ne str) && str.length >= len => Nil
     case _ => List(FieldError(currentField.box openOr new FieldIdentifier{}, Text(msg)))
@@ -280,7 +295,7 @@ private[liftweb] trait AbstractScreen extends Factory {
    * A validation helper.  Make sure the string is no more than a particular
    * length and generate a validation issue if not
    */
-  protected def valMaxLen(len: Int, msg: => String): String => List[FieldError] =
+  protected def valMaxLen(len: => Int, msg: => String): String => List[FieldError] =
   s => s match {
     case str if (null ne str) && str.length <= len => Nil
     case _ => List(FieldError(currentField.box openOr new FieldIdentifier{}, Text(msg)))
@@ -289,16 +304,16 @@ private[liftweb] trait AbstractScreen extends Factory {
   /**
    * Make sure the field matches a regular expression
    */
-  protected def valRegex(pat: java.util.regex.Pattern, msg: => String): String => List[FieldError] =
+  protected def valRegex(pat: => java.util.regex.Pattern, msg: => String): String => List[FieldError] =
   s => s match {
     case str if (null ne str) && pat.matcher(str).matches => Nil
     case _ => List(FieldError(currentField.box openOr new FieldIdentifier{}, Text(msg)))
   }
 
-  protected def minVal[T](len: T, msg: => String)(implicit f: T => Number): T => List[FieldError] =
+  protected def minVal[T](len: => T, msg: => String)(implicit f: T => Number): T => List[FieldError] =
   s => if (f(s).doubleValue < f(len).doubleValue) msg else Nil
 
-  protected def maxVal[T](len: T, msg: => String)(implicit f: T => Number): T => List[FieldError] =
+  protected def maxVal[T](len: => T, msg: => String)(implicit f: T => Number): T => List[FieldError] =
   s => if (f(s).doubleValue > f(len).doubleValue) msg else Nil
 
   def noticeTypeToAttr(screen: AbstractScreen): Box[NoticeType.Value => MetaData] =
@@ -334,33 +349,33 @@ trait ScreenWizardRendered {
         val myNotices = notices.filter(fi => fi._3.isDefined && fi._3 == f.field.uniqueFieldId)
         def doLabel(in: NodeSeq): NodeSeq =
         myNotices match {
-          case Nil => bind("wizard", in, AttrBindParam("for", curId, "for"), "bind" -> f.text)
+          case Nil => bind("wizard", in, AttrBindParam("for", curId, "for"), "bind" -%> f.text)
           case _ =>
             val maxN = myNotices.map(_._1).sort{_.id > _.id}.head // get the maximum type of notice (Error > Warning > Notice)
             val metaData: MetaData = noticeTypeToAttr(theScreen).map(_(maxN)) openOr Null
-            bind("wizard", in, AttrBindParam("for", curId, "for"), "bind" -> f.text).map {
+            bind("wizard", in, AttrBindParam("for", curId, "for"), "bind" -%> f.text).map {
               case e: Elem => e % metaData
               case x => x
             }
         }
         bind("wizard", xhtml,
-             "label" -> doLabel _, 
-             "form" -> f.input.map(f => f.map{
+             "label" -%> doLabel _, 
+             "form" -%> f.input.map(f => f.map{
             case e: Elem => e % ("id" -> curId)
             case x => x}: NodeSeq),
              FuncBindParam("help", xml => {
               f.help match {
-                case Full(hlp) => bind("wizard", xml, "bind" -> hlp)
+                case Full(hlp) => bind("wizard", xml, "bind" -%> hlp)
                 case _ => NodeSeq.Empty
               }
             }),
              FuncBindParam("field_errors", xml => {
               myNotices match {
                 case Nil => NodeSeq.Empty
-                case xs => bind("wizard", xml, "error" ->
+                case xs => bind("wizard", xml, "error" -%>
                                 (innerXml => xs.flatMap {case (noticeType, msg, _) =>
                           val metaData: MetaData = noticeTypeToAttr(theScreen).map(_(noticeType)) openOr Null
-                          bind("wizard", innerXml, "bind" -> msg).map {
+                          bind("wizard", innerXml, "bind" -%> msg).map {
                             case e: Elem => e % metaData
                             case x => x
                           }}))
@@ -378,21 +393,21 @@ trait ScreenWizardRendered {
       case xs =>
         def doErrors(in: NodeSeq): NodeSeq = xs.flatMap{case (noticeType, msg, _) =>
             val metaData: MetaData = noticeTypeToAttr(theScreen).map(_(noticeType)) openOr Null
-            bind("wizard", in, "bind" ->
+            bind("wizard", in, "bind" -%>
                  (msg)).map {
               case e: Elem => e % metaData
               case x => x
             }}
 
         bind("wizard", xhtml,
-             "item" -> doErrors _)
+             "item" -%> doErrors _)
     }
 
 
 
     def bindFields(xhtml: NodeSeq): NodeSeq =
     (<form id={nextId._1} action={url} method="post">{S.formGroup(-1)(SHtml.hidden(() =>
-            snapshot.restore()))}{bind("wizard", xhtml, "line" -> bindFieldLine _)}{S.formGroup(4)(SHtml.hidden(() =>
+            snapshot.restore()))}{bind("wizard", xhtml, "line" -%> bindFieldLine _)}{S.formGroup(4)(SHtml.hidden(() =>
             {nextId._2(); val localSnapshot = createSnapshot; S.seeOther(url, () => localSnapshot.restore)}))}</form> %
       theScreen.additionalAttributes) ++
     prevId.toList.map{case (id, func) =>
@@ -408,21 +423,21 @@ trait ScreenWizardRendered {
 
     def bindScreenInfo(xhtml: NodeSeq): NodeSeq = (currentScreenNumber, screenCount) match {
       case (Full(num), Full(cnt)) =>
-        bind("wizard", xhtml, "screen_number" -> num/*Text(CurrentScreen.is.map(s => (s.myScreenNum + 1).toString) openOr "")*/,
-             "total_screens" -> cnt /*Text(screenCount.toString)*/)
+        bind("wizard", xhtml, "screen_number" -%> num/*Text(CurrentScreen.is.map(s => (s.myScreenNum + 1).toString) openOr "")*/,
+             "total_screens" -%> cnt /*Text(screenCount.toString)*/)
       case _ => NodeSeq.Empty
     }
 
     Helpers.bind("wizard", allTemplate,
-                 "screen_info" -> bindScreenInfo _,
+                 "screen_info" -%> bindScreenInfo _,
                  FuncBindParam("wizard_top", xml => (wizardTop.map(top => bind("wizard", xml, "bind" -%> top)) openOr NodeSeq.Empty)),
                  FuncBindParam("screen_top", xml => (screenTop.map(top => bind("wizard", xml, "bind" -%> top)) openOr NodeSeq.Empty)),
                  FuncBindParam("wizard_bottom", xml => (wizardBottom.map(bottom => bind("wizard", xml, "bind" -%> bottom)) openOr NodeSeq.Empty)),
                  FuncBindParam("screen_bottom", xml => (screenBottom.map(bottom => bind("wizard", xml, "bind" -%> bottom)) openOr NodeSeq.Empty)),
-                 "prev" -> (prev openOr Unparsed("&nbsp;")),
-                 "next" -> ((next or finish) openOr Unparsed("&nbsp;")),
-                 "cancel" -> (cancel openOr Unparsed("&nbsp;")),
-                 "errors" -> bindErrors _,
+                 "prev" -%> (prev openOr EntityRef("nbsp")),
+                 "next" -%> ((next or finish) openOr EntityRef("nbsp")),
+                 "cancel" -%> (cancel openOr EntityRef("nbsp")),
+                 "errors" -%> bindErrors _,
                  FuncBindParam("fields", bindFields _))
 
   }
@@ -468,7 +483,7 @@ trait ScreenWizardRendered {
 
 case class ScreenFieldInfo(field: FieldIdentifier, text: NodeSeq, help: Box[NodeSeq], input: Box[NodeSeq])
 
-trait LiftScreen extends AbstractScreen with DispatchSnippet with ScreenWizardRendered {
+trait LiftScreen extends AbstractScreen with StatefulSnippet with ScreenWizardRendered {
   def dispatch = {
     case _ => ignore => this.toForm
   }
@@ -481,6 +496,7 @@ trait LiftScreen extends AbstractScreen with DispatchSnippet with ScreenWizardRe
   protected class ScreenSnapshot(private[http] val screenVars: Map[String, (NonCleanAnyVar[_], Any)],
                                  private[http] val snapshot: Box[ScreenSnapshot]) extends Snapshot {
     def restore() {
+      registerThisSnippet();
       ScreenVars.set(screenVars)
       PrevSnapshot.set(snapshot)
     }

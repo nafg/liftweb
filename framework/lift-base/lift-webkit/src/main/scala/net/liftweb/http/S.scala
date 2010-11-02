@@ -179,7 +179,7 @@ object S extends HasParams with Loggable {
   /**
    * Get a Req representing our current HTTP request.
    *
-   * @return A Full(Req) if S has been initialized, Empty otherwise.
+   * @return A Full(Req) if one has been initialized on the calling thread, Empty otherwise.
    *
    * @see Req
    */
@@ -608,7 +608,6 @@ object S extends HasParams with Loggable {
                   val meth = clz.getDeclaredMethods.
                   filter{m => m.getName == "clearCache" && m.getParameterTypes.length == 0}.
                   toList.head
-                
                   meth.invoke(null)
                 }
               }
@@ -884,7 +883,34 @@ for {
    * @param f Function to execute within the scope of the request and session
    */
   def init[B](request: Req, session: LiftSession)(f: => B): B = {
-    _init(request, session)(() => f)
+    if (inS.value) f
+    else {
+      if (request.stateless_?) 
+        session.doAsStateless(_init(request, session)(() => f))
+      else _init(request, session)(() => f)
+    }
+  }
+  
+  def statelessInit[B](request: Req)(f: => B): B = {
+    session match {
+      case Full(s) if s.stateful_? => {
+        throw new StateInStatelessException(
+          "Attempt to initialize a stateless session within the context "+
+          "of a stateful session")
+      }
+      
+      case Full(_) => f
+
+      case _ => {
+        val fakeSess = LiftRules.statelessSession.vend.apply(request)
+        try {
+          _init(request, 
+                fakeSess)(() => f)
+        } finally {
+          ActorPing.schedule(() => fakeSess.doShutDown(), 0 seconds)
+        }
+      }
+    }
   }
 
   /**
@@ -895,8 +921,8 @@ for {
   /**
    * Log a query for the given request.  The query log can be tested to see
    * if queries for the particular page rendering took too long. The query log
-   * starts empty for each new request. net.liftweb.mapper.DB.queryCollector is a 
-   * method that can be used as a log function for the net.liftweb.mapper.DB.addLogFunc 
+   * starts empty for each new request. net.liftweb.mapper.DB.queryCollector is a
+   * method that can be used as a log function for the net.liftweb.mapper.DB.addLogFunc
    * method to enable logging of Mapper queries. You would set it up in your bootstrap like:
    *
    * <pre name="code" class="scala" >
@@ -1192,7 +1218,7 @@ for {
   private def doStatefulRewrite(old: Req): Req = {
     // Don't even try to rewrite Req.nil
     if (!old.path.partPath.isEmpty && (old.request ne null))
-      Req(old, S.sessionRewriter.map(_.rewrite) ::: LiftRules.statefulRewrite.toList)
+      Req(old, S.sessionRewriter.map(_.rewrite) ::: LiftRules.statefulRewrite.toList, LiftRules.statelessTest.toList)
     else old
   }
 
@@ -1228,20 +1254,19 @@ for {
   private[liftweb] def lightInit[B](request: Req,
     session: LiftSession,
     attrs: List[(Either[String, (String, String)], String)])(f: => B): B =
-    
-    this._request.doWith(request) {
-      _sessionInfo.doWith(session) {
-        _lifeTime.doWith(false) {
-          _attrs.doWith(attrs) {
-            _resBundle.doWith(Nil) {
-              inS.doWith(true) {
-                f
+      this._request.doWith(request) {
+        _sessionInfo.doWith(session) {
+          _lifeTime.doWith(false) {
+            _attrs.doWith(attrs) {
+              _resBundle.doWith(Nil) {
+                inS.doWith(true) {
+                  f
+                }
               }
             }
           }
         }
       }
-    }
 
 
   private def _init[B](request: Req, session: LiftSession)(f: () => B): B =
@@ -1251,6 +1276,7 @@ for {
           TransientRequestVarHandler(Full(session),
             RequestVarHandler(Full(session),
               _responseCookies.doWith(CookieHolder(getCookies(containerRequest), Nil)) {
+                if (Props.devMode) LiftRules.siteMap // materialize the sitemap very early
                 _innerInit(request, f)
               }
             )
@@ -1588,6 +1614,15 @@ for {
     } ::: attrs)(f)
   }
 
+  /**
+   * Initialize the current request session if it's not already initialized.
+   * Generally this is handled by Lift during request processing, but this
+   * method is available in case you want to use S outside the scope
+   * of a request (standard HTTP or Comet).
+   *
+   * @param session the LiftSession for this request
+   * @param f A function to execute within the scope of the session
+   */
   def initIfUninitted[B](session: LiftSession)(f: => B): B = {
     if (inS.value) f
     else init(Req.nil, session)(f)
@@ -1716,14 +1751,26 @@ for {
    * Get a map of function name bindings that are used for form and other processing. Using these
    * bindings is considered advanced functionality.
    */
-  def functionMap: Map[String, AFuncHolder] =
+  def functionMap: Map[String, AFuncHolder] = {
     Box.legacyNullTest(_functionMap.value).
-            map(s => Map(s.elements.toList: _*)).openOr(Map.empty)
+    map(s => Map(s.elements.toList: _*)).openOr(Map.empty)
+  }
+
+  private def testFunctionMap[T](f: T): T = 
+    session match {
+      case Full(s) if s.stateful_? => f
+      case _ => throw new StateInStatelessException(
+        "Accessing function map information outside of a stateful session")
+    }
 
   /**
    * Clears the function map.  potentially very destuctive... use at your own risk!
    */
-  def clearFunctionMap {Box.!!(_functionMap.value).foreach(_.clear)}
+  def clearFunctionMap {
+    testFunctionMap {
+      Box.!!(_functionMap.value).foreach(_.clear)
+    }
+  }
 
   /**
    * The current context path for the deployment.
@@ -1758,7 +1805,7 @@ for {
 
   /**
    * Associates a name with a snippet function 'func'. This can be used to change a snippet
-   * mapping on a per-session basis. For example, if we have a page that we want to change
+   * mapping on a per-request basis. For example, if we have a page that we want to change
    * behavior on based on query parameters, we could use mapSnippet to programmatically determine
    * which snippet function to use for a given snippet in the template. Our code would look like:
    *
@@ -1793,7 +1840,8 @@ for {
    * Snippets are processed in the order that they're defined in the
    * template, so if you want to use this approach make sure that
    * the snippet that defines the mapping comes before the snippet that
-   * is being mapped.
+   * is being mapped. Also note that these mappings are per-request, and are
+   * discarded after the current request is processed.
    *
    * @param name The name of the snippet that you want to map (the part after "&lt;lift:").
    * @param func The snippet function to map to.
@@ -1801,13 +1849,25 @@ for {
   def mapSnippet(name: String, func: NodeSeq => NodeSeq) {_snippetMap.set(_snippetMap.is.update(name, func))}
 
   /**
+   * The are times when it's helpful to define snippets for a certain
+   * call stack... snippets that are local purpose. Use doWithSnippets
+   * to temporarily define snippet mappings for the life of f.
+   */
+  def mapSnippetsWith[T](snips: (String,  NodeSeq => NodeSeq)*)(f: => T): T = {
+    val newMap = _snippetMap.is ++ snips
+    _snippetMap.doWith(newMap)(f)
+  }
+   
+
+  /**
    * Associates a name with a function impersonated by AFuncHolder. These are basically functions
    * that are executed when a request contains the 'name' request parameter.
    */
   def addFunctionMap(name: String, value: AFuncHolder) = {
+    testFunctionMap {
    (autoCleanUp.box, _oneShot.box) match {
      case (Full(true), _) => {
-       _functionMap.value += (name -> 
+       _functionMap.value += (name ->
                               new S.ProxyFuncHolder(value) {
                                 override def apply(in: List[String]): Any = {
                                   try {
@@ -1816,7 +1876,7 @@ for {
                                     S.session.map(_.removeFunction(name))
                                   }
                                 }
-                                
+
                                 override def apply(in: FileParamHolder): Any = {
                                   try {
                                     value.apply(in)
@@ -1829,15 +1889,15 @@ for {
 
      case (_, Full(true)) => {
        def setProxyFunc(retVal: Any) {
-         _functionMap.value += 
+         _functionMap.value +=
          (name -> new S.ProxyFuncHolder(value) {
           override def apply(in: List[String]): Any = retVal
           override def apply(in: FileParamHolder): Any = retVal
         })
        }
-       
-       _functionMap.value += 
-       (name -> 
+
+       _functionMap.value +=
+       (name ->
         new S.ProxyFuncHolder(value) {
           override def apply(in: List[String]): Any = {
             val ret = try {
@@ -1850,7 +1910,7 @@ for {
             setProxyFunc(ret)
             ret
           }
-          
+
           override def apply(in: FileParamHolder): Any = {
             val ret = try {
               value.apply(in)
@@ -1864,10 +1924,11 @@ for {
           }
         })
      }
-       
+
      case _ =>
        _functionMap.value += (name -> value)
    }
+  }
   }
 
   private def booster(lst: List[String], func: String => Any): Unit = lst.foreach(v => func(v))
@@ -2032,7 +2093,7 @@ for {
       }
 
       def jsonCallback(in: List[String]): JsCmd = {
-        in.firstOption.toList.flatMap {
+        in.headOption.toList.flatMap {
           s =>
                   val parsed = JSONParser.parse(s.trim).toList
                   val cmds = parsed.map(checkCmd)
@@ -2171,7 +2232,7 @@ for {
   private final class SFuncHolder(val func: String => Any, val owner: Box[String]) extends AFuncHolder {
     def this(func: String => Any) = this (func, Empty)
 
-    def apply(in: List[String]): Any = in.firstOption.toList.map(func(_))
+    def apply(in: List[String]): Any = in.headOption.toList.map(func(_))
   }
 
   object LFuncHolder {
@@ -2201,7 +2262,7 @@ for {
    */
   @serializable
   private final class NFuncHolder(val func: () => Any, val owner: Box[String]) extends AFuncHolder {
-    def apply(in: List[String]): Any = in.firstOption.toList.map(s => func())
+    def apply(in: List[String]): Any = in.headOption.toList.map(s => func())
   }
 
   /**
@@ -2230,7 +2291,9 @@ for {
 
     if (inS.value) doRender(session.open_!)
     else {
-      val req = Req(httpRequest, LiftRules.statelessRewrite.toList, System.nanoTime)
+      val req = Req(httpRequest, LiftRules.statelessRewrite.toList,
+                    LiftRules.statelessTest.toList,
+                    System.nanoTime)
       val ses: LiftSession = SessionMaster.getSession(httpRequest, Empty) match {
         case Full(ret) =>
           ret.fixSessionTime()
@@ -2441,7 +2504,7 @@ for {
    *            takes one parameter which is the function that must be invoked
    *            for returning the actual response to the client. Note that f function
    *            is invoked asynchronously in the context of a different thread.
-   * 
+   *
    */
   def respondAsync(f: => Box[LiftResponse]): () => Box[LiftResponse] = {
    (for (req <- S.request) yield {
@@ -2476,8 +2539,22 @@ for {
  * Defines the notices types
  */
 @serializable
-object NoticeType extends Enumeration {
-  val Notice, Warning, Error = Value
+object NoticeType {
+  sealed abstract class Value(val title : String) {
+    def lowerCaseTitle = title.toLowerCase
+
+    // The element ID to use for notice divs
+    def id : String = LiftRules.noticesContainerId + "_" + lowerCaseTitle
+
+    // The element that will define the title to use in notice messages
+    def titleTag : String = lowerCaseTitle + "_msg"
+
+    def styleTag : String = lowerCaseTitle + "_class"
+  }
+
+  object Notice extends Value("Notice")
+  object Warning extends Value("Warning")
+  object Error extends Value("Error")
 }
 
 /**

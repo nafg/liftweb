@@ -212,6 +212,17 @@ trait DBIndexed extends BaseMappedField {
   override def dbIndexed_? = true
 }
 
+object MappedForeignKey {
+  implicit def getObj[KeyType, 
+		      MyOwner <: Mapper[MyOwner], 
+		      Other <: KeyedMapper[KeyType, 
+					   Other]](in:
+						   MappedForeignKey[KeyType, 
+								    MyOwner,
+								    Other]):
+  Box[Other] = in.obj
+}
+
 /**
  * The Trait that defines a field that is mapped to a foreign key
  */
@@ -289,6 +300,9 @@ trait MappedForeignKey[KeyType, MyOwner <: Mapper[MyOwner], Other <: KeyedMapper
     }
     _obj
   }
+
+  private[mapper] def _primeObj(obj: Box[Any]) =
+    primeObj(obj.asInstanceOf[Box[Other]])
 
   /**
    * Prime the reference of this FK reference
