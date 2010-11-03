@@ -225,6 +225,10 @@
       <id>eltimn</id>
       <name>Tim Nelson</name>
     </developer>
+    <developer>
+      <id>vdichev</id>
+      <name>Vassil Dichev</name>
+    </developer>
   </developers>
   <mailingLists>
     <mailingList>
