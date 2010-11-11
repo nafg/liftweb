@@ -292,6 +292,8 @@
     <project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
 
     <scala.version>2.8.0</scala.version>
+    <specs.version>1.6.5</specs.version>
+    <dispatch.version>0.7.7</dispatch.version>
     <slf4j.version>1.6.1</slf4j.version>
     <!-- Note: logback.version must be compatible with slf4j.version -->
     <logback.version>0.9.26</logback.version>
@@ -369,7 +371,7 @@
       <dependency>
         <groupId>net.databinder</groupId>
         <artifactId>dispatch-http_${scala.version}</artifactId>
-        <version>0.7.4</version>
+        <version>0.7.7</version>
       </dependency>
       <dependency>
         <groupId>net.jcip</groupId>
@@ -577,7 +579,7 @@
       <dependency>
         <groupId>org.scala-tools.testing</groupId>
         <artifactId>specs_${scala.version}</artifactId>
-        <version>1.6.5</version>
+        <version>${specs.version}</version>
         <scope>test</scope>
       </dependency>
       <dependency>
