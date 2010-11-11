@@ -9,6 +9,6 @@ done
 
 mvn -Dspecs.version=1.6.6 deploy
 
-find . -name pom.xml -exec checkout {} \;
+find . -name pom.xml -exec git checkout {} \;
 
 
