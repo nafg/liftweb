@@ -1,0 +1,14 @@
+#!/bin/sh
+
+for x in $(find . -name pom.xml) 
+do
+  sed -e "s/2.8.0/$1/" $x > ${x}.prime
+  rm $x
+  mv ${x}.prime $x
+done
+
+mvn -Dspecs.version=1.6.6 clean install
+
+find . -name pom.xml -exec git checkout {} \;
+
+
