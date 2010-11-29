@@ -744,6 +744,23 @@ index 85d070d..dbee645 100644
  
    <!--
      ~ More Project Information
+diff --git framework/lift-modules/lift-wiring/pom.xml framework/lift-modules/lift-wiring/pom.xml
+index dcc2e3b..8c70320 100644
+--- framework/lift-modules/lift-wiring/pom.xml
++++ framework/lift-modules/lift-wiring/pom.xml
+@@ -27,10 +27,10 @@
+   -->
+   <parent>
+     <groupId>net.liftweb</groupId>
+-    <artifactId>lift-modules_2.8.1</artifactId>
++    <artifactId>lift-modules_2.8.0</artifactId>
+     <version>2.2-SNAPSHOT</version>
+   </parent>
+-  <artifactId>lift-wiring_2.8.1</artifactId>
++  <artifactId>lift-wiring_2.8.0</artifactId>
+ 
+   <!--
+     ~ More Project Information
 diff --git framework/lift-modules/lift-wizard/pom.xml framework/lift-modules/lift-wizard/pom.xml
 index b701fa4..0a0a124 100644
 --- framework/lift-modules/lift-wizard/pom.xml
@@ -980,7 +997,7 @@ index 5a6f0d4..87e800f 100644
      <relativePath>resources/lift-parent/pom.xml</relativePath>
    </parent>
 diff --git resources/lift-parent/pom.xml resources/lift-parent/pom.xml
-index dbd9d6c..ebc5131 100644
+index 8d93a55..eca15af 100644
 --- resources/lift-parent/pom.xml
 +++ resources/lift-parent/pom.xml
 @@ -37,7 +37,7 @@
