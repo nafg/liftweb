@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+
 
 <!--
   ~ Copyright 2009-2010 WorldWide Conferencing, LLC
@@ -461,7 +461,7 @@
       <dependency>
         <groupId>org.squeryl</groupId>
         <artifactId>squeryl_${scala.version}</artifactId>
-        <version>0.9.4beta8-enums</version>
+        <version>0.9.4-RC3</version>
       </dependency>
       <dependency>
         <groupId>cglib</groupId>
