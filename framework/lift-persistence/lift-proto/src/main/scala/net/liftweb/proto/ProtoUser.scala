@@ -106,7 +106,7 @@ trait ProtoUser {
     /**
      * Save the user to backing store
      */
-    def save(): Boolean
+    def save: Boolean
 
     /**
      * Get a nice name for the user
@@ -387,6 +387,38 @@ trait ProtoUser {
    */
   def menus: List[Menu] = sitemap // issue 182
 
+  /**
+   * Insert this LocParam into your menu if you want the
+   * User's menu items to be inserted at the same level
+   * and after the item
+   */
+  final case object AddUserMenusAfter extends Loc.LocParam[Any]
+
+  /**
+   * replace the menu that has this LocParam with the User's menu
+   * items
+   */
+  final case object AddUserMenusHere extends Loc.LocParam[Any]
+
+  /**
+   * Insert this LocParam into your menu if you want the
+   * User's menu items to be children of that menu
+   */
+  final case object AddUserMenusUnder extends Loc.LocParam[Any]
+
+  private lazy val AfterUnapply = SiteMap.buildMenuMatcher(_ == AddUserMenusAfter)
+  private lazy val HereUnapply = SiteMap.buildMenuMatcher(_ == AddUserMenusHere)
+  private lazy val UnderUnapply = SiteMap.buildMenuMatcher(_ == AddUserMenusUnder)
+
+  /**
+   * The SiteMap mutator function
+   */
+  def sitemapMutator: SiteMap => SiteMap = SiteMap.sitemapMutator {
+    case AfterUnapply(menu) => menu :: sitemap
+    case HereUnapply(_) => sitemap
+    case UnderUnapply(menu) => List(menu.rebuild(_ ::: sitemap))
+  }(SiteMap.addMenusAtEndMutator(sitemap))
+
   lazy val sitemap: List[Menu] =
   List(loginMenuLoc, logoutMenuLoc, createUserMenuLoc,
        lostPasswordMenuLoc, resetPasswordMenuLoc,
@@ -435,6 +467,13 @@ trait ProtoUser {
   def logUserIdIn(id: String) {
     curUser.remove()
     curUserId(Full(id))
+  }
+
+  def logUserIn(who: TheUserType, postLogin: () => Nothing): Nothing = {
+    S.session.open_!.destroySessionAndContinueInNewSession(() => {
+      logUserIn(who)
+      postLogin()
+    })
   }
 
   def logUserIn(who: TheUserType) {
@@ -530,15 +569,18 @@ trait ProtoUser {
   /**
    * Override this method to do something else after the user signs up
    */
-  protected def actionsAfterSignup(theUser: TheUserType) {
+  protected def actionsAfterSignup(theUser: TheUserType, func: () => Nothing): Nothing = {
     theUser.setValidated(skipEmailValidation).resetUniqueId()
     theUser.save
     if (!skipEmailValidation) {
       sendValidationEmail(theUser)
       S.notice(S.??("sign.up.message"))
+      func()
     } else {
-      S.notice(S.??("welcome"))
-      logUserIn(theUser)
+      logUserIn(theUser, () => {      
+        S.notice(S.??("welcome"))
+        func()
+      })
     }
   }
 
@@ -551,16 +593,26 @@ trait ProtoUser {
    * Create a new instance of the User
    */
   protected def createNewUserInstance(): TheUserType
+
+  /**
+   * If there's any mutation to do to the user on creation for
+   * signup, override this method and mutate the user.  This can
+   * be used to pull query parameters from the request and assign
+   * certain fields. . Issue #722
+   *
+   * @param user the user to mutate
+   * @return the mutated user
+   */
+  protected def mutateUserOnSignup(user: TheUserType): TheUserType = user
   
   def signup = {
-    val theUser: TheUserType = createNewUserInstance()
+    val theUser: TheUserType = mutateUserOnSignup(createNewUserInstance())
     val theName = signUpPath.mkString("")
 
     def testSignup() {
       validateSignup(theUser) match {
         case Nil =>
-          actionsAfterSignup(theUser)
-          S.redirectTo(homePage)
+          actionsAfterSignup(theUser, () => S.redirectTo(homePage))
 
         case xs => S.error(xs) ; signupFunc(Full(innerSignup _))
       }
@@ -587,9 +639,10 @@ trait ProtoUser {
   def validateUser(id: String): NodeSeq = findUserByUniqueId(id) match {
     case Full(user) if !user.validated_? =>
       user.setValidated(true).resetUniqueId().save
-      S.notice(S.??("account.validated"))
-      logUserIn(user)
-      S.redirectTo(homePage)
+      logUserIn(user, () => {
+        S.notice(S.??("account.validated"))
+        S.redirectTo(homePage)
+      })
 
     case _ => S.error(S.??("invalid.validation.link")); S.redirectTo(homePage)
   }
@@ -631,18 +684,20 @@ trait ProtoUser {
       S.param("username").
       flatMap(username => findUserByUserName(username)) match {
         case Full(user) if user.validated_? &&
-          user.testPassword(S.param("password")) =>
-          S.notice(S.??("logged.in"))
-          logUserIn(user)
-          //S.redirectTo(homePage)
-          val redir = loginRedirect.is match {
-            case Full(url) =>
-              loginRedirect(Empty)
-              url
-            case _ =>
-              homePage
+          user.testPassword(S.param("password")) => {
+            logUserIn(user, () => {
+              S.notice(S.??("logged.in"))
+
+              val redir = loginRedirect.is match {
+                case Full(url) =>
+                  loginRedirect(Empty)
+                url
+                case _ =>
+                  homePage
+              }
+              S.redirectTo(redir)
+            })
           }
-          S.redirectTo(redir)
 
         case Full(user) if !user.validated_? =>
           S.error(S.??("account.validation.error"))
@@ -755,7 +810,7 @@ trait ProtoUser {
         user.validate match {
           case Nil => S.notice(S.??("password.changed"))
             user.save
-            logUserIn(user); S.redirectTo(homePage)
+            logUserIn(user, () => S.redirectTo(homePage))
 
           case xs => S.error(xs)
         }
@@ -813,8 +868,21 @@ trait ProtoUser {
 
   object editFunc extends RequestVar[Box[() => NodeSeq]](Empty)
 
+  /**
+   * If there's any mutation to do to the user on retrieval for
+   * editting, override this method and mutate the user.  This can
+   * be used to pull query parameters from the request and assign
+   * certain fields. Issue #722
+   *
+   * @param user the user to mutate
+   * @return the mutated user
+   */
+  protected def mutateUserOnEdit(user: TheUserType): TheUserType = user
+
   def edit = {
-    val theUser: TheUserType = currentUser.open_! // we know we're logged in
+    val theUser: TheUserType = 
+      mutateUserOnEdit(currentUser.open_!) // we know we're logged in
+
     val theName = editPath.mkString("")
 
     def testEdit() {

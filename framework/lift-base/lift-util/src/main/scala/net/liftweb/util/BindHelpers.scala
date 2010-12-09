@@ -19,7 +19,7 @@ package util {
 
 import _root_.scala.xml._
 import common._
-
+import _root_.scala.collection.mutable.ListBuffer
 
 
 /**
@@ -703,6 +703,26 @@ trait BindHelpers {
   }
 
   /**
+   * Replace the element with the id that matches with the replacement
+   * nodeseq.
+   */
+  def replaceIdNode(in: NodeSeq, id: String, replacement: NodeSeq): NodeSeq = {
+    import scala.xml.transform._
+
+    val cmp = Some(Text(id))
+
+    val rewrite = new RewriteRule {
+      override def transform(in: Node): Seq[Node] = in match {
+        case e: Elem if e.attribute("id") == cmp => replacement
+
+        case x => x
+      }
+    }
+
+    (new RuleTransformer(rewrite)).transform(in)
+  }
+
+  /**
    *  transforms a Box into a Text node
    */
   object BindParamAssoc {
@@ -914,6 +934,8 @@ trait BindHelpers {
            paramFailureXform: Box[PrefixedAttribute => MetaData],
            preserveScope: Boolean,
            xml: NodeSeq, params: BindParam*): NodeSeq = {
+    val nsColon = namespace + ":"
+
     BindHelpers._bindNodes.doWith(xml :: (BindHelpers._bindNodes.box.openOr(Nil))) {
       val map: _root_.scala.collection.immutable.Map[String, BindParam] = _root_.scala.collection.immutable.HashMap.empty ++ params.map(p => (p.name, p))
 
@@ -931,6 +953,36 @@ trait BindHelpers {
 
       def in_bind(xml: NodeSeq): NodeSeq = {
         xml.flatMap {
+          case BoundAttr(e, av) if av.startsWith(nsColon) => {
+            val fixedAttrs = e.attributes.filter  {
+              case up: UnprefixedAttribute => true
+              case pa: PrefixedAttribute => {
+                val res = !(pa.pre == "lift" && pa.key == "bind")
+                res
+              }
+              case _ => true
+            }
+
+            val fixedLabel = av.substring(nsColon.length)
+
+            val fake = new Elem(namespace, fixedLabel, fixedAttrs,
+                                e.scope, new Elem(e.namespace,
+                                                  e.label,
+                                                  fixedAttrs,
+                                                  e.scope,
+                                                  e.child :_*))
+
+            BindHelpers._currentNode.doWith(fake) {
+              map.get(fake.label) match {
+                case None =>
+                  nodeFailureXform.map(_(fake)) openOr fake
+                
+                case Some(ns) =>
+                  ns.calcValue(fake.child) getOrElse NodeSeq.Empty
+              }
+            }
+          }
+
           case s: Elem if s.prefix == namespace => BindHelpers._currentNode.doWith(s) {
             map.get(s.label) match {
               case None =>
@@ -942,6 +994,7 @@ trait BindHelpers {
                 ns.calcValue(s.child) getOrElse NodeSeq.Empty
             }
           }
+
           case s: Elem if bindByNameType(s.label) && (attrStr(s, "name").startsWith(namespace+":")) &&
                           bindByNameTag(namespace, s) != "" => BindHelpers._currentNode.doWith(s) {
             val tag = bindByNameTag(namespace, s)
@@ -958,6 +1011,28 @@ trait BindHelpers {
       }
 
       in_bind(xml)
+    }
+  }
+
+  private object BoundAttr {
+    def unapply(in: Node): Option[(Elem, String)] = {
+      in match {
+        case e: Elem => {
+          val bound = e.attributes.filter {
+            case up: UnprefixedAttribute => false
+            case pa: PrefixedAttribute =>
+              pa.pre == "lift" && pa.key == "bind"
+            case _ => false
+          }
+          
+          bound.elements.toList match {
+            case xs :: _ => Some(e -> xs.value.text)
+            case _ => None
+          }
+        }
+        
+        case _ => None 
+      }
     }
   }
 
@@ -1556,38 +1631,42 @@ object ClearClearable extends CssBindImpl(Full(".clearable"), CssSelectorParser.
 }
 
 private class SelectorMap(binds: List[CssBind]) extends Function1[NodeSeq, NodeSeq] {
+  private def sortBinds(lst: List[CssBind]): List[CssBind] =
+    lst.sort {
+      case (SubNode(me: EmptyBox), SubNode(_)) => true
+      case (SubNode(_), SubNode(them: EmptyBox)) => false
+      case (SubNode(Full(KidsSubNode())), SubNode(_)) => true
+      case (SubNode(_), SubNode(Full(KidsSubNode()))) => false
+      case _ => true
+    }
+
   private val (idMap, nameMap, clzMap, attrMap, elemMap, starFunc)  = {
-    var idMap: Map[String, CssBind] = Map()
-    var nameMap: Map[String, CssBind] = Map()
-    var clzMap: Map[String, CssBind] = Map()
-    var attrMap: Map[String, Map[String, CssBind]] = Map()
-    var elemMap: Map[String, CssBind] = Map()
-    var starFunc: Box[CssBind] = Empty
+    var idMap: Map[String, List[CssBind]] = Map()
+    var nameMap: Map[String, List[CssBind]] = Map()
+    var clzMap: Map[String, List[CssBind]] = Map()
+    var attrMap: Map[String, Map[String, List[CssBind]]] = Map()
+    var elemMap: Map[String, List[CssBind]] = Map()
+    var starFunc: Box[List[CssBind]] = Empty
 
     binds.foreach {
-      case i @ CssBind(IdSelector(id, _)) => if (!idMap.isDefinedAt(id)) {
-        idMap += (id -> i)
-      }
+      case i @ CssBind(IdSelector(id, _)) => 
+        idMap += (id -> sortBinds(i :: idMap.getOrElse(id, Nil)))
 
-      case i @ CssBind(ElemSelector(id, _)) => if (!elemMap.isDefinedAt(id)) {
-        elemMap += (id -> i)
-      }
+      case i @ CssBind(ElemSelector(id, _)) => 
+        elemMap += (id -> sortBinds(i :: elemMap.getOrElse(id, Nil)))
+      
 
-      case i @ CssBind(StarSelector(_)) => starFunc = Full(i)
+      case i @ CssBind(StarSelector(_)) => starFunc = Full(sortBinds(i :: starFunc.openOr(Nil)))
 
-      case i @ CssBind(NameSelector(name, _)) => if (!nameMap.isDefinedAt(name)) {
-        nameMap += (name -> i)
-      }
+      case i @ CssBind(NameSelector(name, _)) => 
+        nameMap += (name -> sortBinds(i :: nameMap.getOrElse(name, Nil)))
 
-      case i @ CssBind(ClassSelector(clz, _)) => if (!clzMap.isDefinedAt(clz)) {
-        clzMap += (clz -> i)
-      }
+      case i @ CssBind(ClassSelector(clz, _)) => 
+        clzMap += (clz -> sortBinds(i :: clzMap.getOrElse(clz, Nil)))
 
       case i @ CssBind(AttrSelector(name, value, _)) => {
         val oldMap = attrMap.getOrElse(name, Map())
-        if (!oldMap.isDefinedAt(value)) {
-          attrMap += (name -> (oldMap + (value -> i)))
-        }
+        attrMap += (name -> (oldMap + (value -> sortBinds(i :: oldMap.getOrElse(value, Nil)))))
       }
     }
 
@@ -1603,7 +1682,28 @@ private class SelectorMap(binds: List[CssBind]) extends Function1[NodeSeq, NodeS
       case _ => true
     }
 
-    def applyRule(bind: CssBind, realE: Elem): NodeSeq = {
+    private final def isSelThis(bind: CssBind): Boolean = 
+      bind.css.open_!.subNodes match {
+        case Full(SelectThisNode()) => true
+        case _ => false
+      }
+
+    final def applyRule(bindList: List[CssBind], realE: Elem, ignoreSelThis: Boolean): NodeSeq = 
+      bindList match {
+        case Nil => realE 
+        case bind :: xs 
+        if ignoreSelThis && isSelThis(bind) => applyRule(xs, realE, ignoreSelThis)
+
+        case bind :: xs => {
+          applyRule(bind, realE) flatMap {
+            case e: Elem => applyRule(xs, e, ignoreSelThis)
+            case x => x
+          }
+        }
+      }
+      
+    
+    final def applyRule(bind: CssBind, realE: Elem): NodeSeq = {
       def mergeAll(other: MetaData, stripId: Boolean): MetaData = {
         var oldAttrs = attrs - (if (stripId) "id" else "")
 
@@ -1661,6 +1761,10 @@ private class SelectorMap(binds: List[CssBind]) extends Function1[NodeSeq, NodeS
       // we can do an open_! here because all the CssBind elems
       // have been vetted
       bind.css.open_!.subNodes match {
+        case Full(SelectThisNode()) => {
+          throw new RetryWithException(realE)
+        }
+          
         case Full(KidsSubNode()) => {
           val calced = bind.calculate(realE.child)
           calced.length match {
@@ -1704,6 +1808,41 @@ private class SelectorMap(binds: List[CssBind]) extends Function1[NodeSeq, NodeS
                    realE.label, newAttr,
                    realE.scope, SelectorMap.this.apply(realE.child) :_*)
         }
+
+        case Full(AttrAppendSubNode(attr)) => {
+          val org: NodeSeq = realE.attribute(attr).getOrElse(NodeSeq.Empty)
+          val calced = bind.calculate(realE).toList
+
+
+          if (calced.isEmpty) {
+            realE
+          } else {
+            val filtered = realE.attributes.filter{
+              case up: UnprefixedAttribute => up.key != attr
+              case _ => true
+            }
+            
+            val flat: NodeSeq = if (attr == "class") {
+              if (org.isEmpty) {
+                calced.dropRight(1).flatMap(a => a ++ Text(" ")) ++
+                calced.takeRight(1).head
+              } else {
+                org ++ Text(" ") ++ 
+                calced.dropRight(1).flatMap(a => a ++ Text(" ")) ++
+                calced.takeRight(1).head
+              }
+            } else {
+              org ++ (calced.flatMap(a => a): NodeSeq)
+            }
+
+            val newAttr = new UnprefixedAttribute(attr, flat, filtered)
+
+            new Elem(realE.prefix, 
+                     realE.label, newAttr,
+                     realE.scope, SelectorMap.this.apply(realE.child) :_*)
+            
+          }
+        }
           
         case x: EmptyBox => {
           val calced = bind.calculate(realE)
@@ -1741,61 +1880,68 @@ private class SelectorMap(binds: List[CssBind]) extends Function1[NodeSeq, NodeS
     }
 
 
-    def processId(in: Elem): Box[NodeSeq] = 
+    final def forId(in: Elem, buff: ListBuffer[CssBind]) {
       for {
         rid <- id
         bind <- idMap.get(rid)
-      } yield applyRule(bind, in)
+      } buff ++= bind
+    }
 
-    def processElem(in: Elem): Box[NodeSeq] =
+    final def forElem(in: Elem, buff: ListBuffer[CssBind]) {
       for {
         bind <- elemMap.get(in.label)
-      } yield applyRule(bind, in)
+      } buff ++= bind
+    }
 
-    def processStar(in: Elem): Box[NodeSeq] =
+    final def forStar(buff: ListBuffer[CssBind]) {
       for {
         bind <- starFunc
-      } yield applyRule(bind, in)
+      } buff ++= bind
+    }
 
-    def processName(in: Elem): Box[NodeSeq] = 
+    final def forName(in: Elem, buff: ListBuffer[CssBind]) {
       for {
         rid <- name
         bind <- nameMap.get(rid)
-      } yield applyRule(bind, in)
-
-    def findClass(clz: List[String]): Box[CssBind] = clz match {
-      case Nil => Empty
-      case x :: xs =>
-        clzMap.get(x) match {
-          case Some(cb) => Full(cb)
-          case _ => findClass(xs)
-        }
+      } buff ++= bind
     }
-
-    def processClass(in: Elem): Box[NodeSeq] = 
-      findClass(classes) match {
-        case Full(bind) => Full(applyRule(bind, in))
-        case _ => Empty
+    
+    def findClass(clz: List[String], buff: ListBuffer[CssBind]) {
+      clz match {
+        case Nil => ()
+          case x :: xs => {
+            clzMap.get(x) match {
+              case Some(cb) => buff ++= cb 
+              case _ => 
+            }
+            findClass(xs, buff)
+          }
       }
-
-    def processAttr(in: Elem): Box[NodeSeq] = 
-      if (attrMap.isEmpty || attrs.isEmpty) Empty
-    else {
-      (for {
-        (key, map) <- attrMap
-        v <- attrs.get(key)
-        cb <- map.get(v)
-      } yield applyRule(cb, in)).toSeq.firstOption
     }
-  }
-
+    
+    def forClass(in: Elem, buff: ListBuffer[CssBind]) {
+      findClass(classes, buff) 
+    }
+    
+    def forAttr(in: Elem, buff: ListBuffer[CssBind]) {
+      if (attrMap.isEmpty || attrs.isEmpty) ()
+      else {
+        for {
+          (key, map) <- attrMap
+          v <- attrs.get(key)
+          cb <- map.get(v)
+        } buff ++= cb
+      }
+    }
+  }  
+    
   private def slurpAttrs(in: MetaData): SlurpedAttrs = {
     var id: Box[String] = Empty
     var cur: MetaData = in
     var name: Box[String] = Empty
     var clzs: List[String] = Nil
     var theAttrs: Map[String, String] = Map()
-
+    
     while (cur != Null) {
       cur match {
         case up: UnprefixedAttribute => {
@@ -1808,47 +1954,64 @@ private class SelectorMap(binds: List[CssBind]) extends Function1[NodeSeq, NodeS
             case "class" => clzs = value.charSplit(' ')
             case _ =>
           }
-
+          
           theAttrs += key -> value
         }
-
+        
         case pa: PrefixedAttribute => {
           theAttrs += ((pa.pre+":"+pa.key) -> pa.value.text)
         }
         
         case _ =>
       }
-
+      
       cur = cur.next
     }
-
+    
     new SlurpedAttrs(id, name) {
       def attrs: Map[String, String] = theAttrs
       def classes: List[String] = clzs
     }
   }
-  
+    
   private def treatElem(e: Elem): NodeSeq = {
     val slurp = slurpAttrs(e.attributes)
-
-    (slurp.processId(e) or
-     slurp.processName(e) or
-     slurp.processClass(e) or
-     slurp.processElem(e) or
-     slurp.processAttr(e) or
-     slurp.processStar(e)) openOr {
-      new Elem(e.prefix, e.label, 
-               e.attributes, e.scope, apply(e.child) :_*)
+    val lb = new ListBuffer[CssBind]
+    
+    slurp.forId(e, lb)
+    slurp.forName(e, lb)
+    slurp.forClass(e, lb)
+    slurp.forElem(e, lb)
+    slurp.forAttr(e, lb)
+    slurp.forStar(lb)
+    
+    lb.toList  match {
+      case Nil => new Elem(e.prefix, e.label, 
+                           e.attributes, e.scope, apply(e.child) :_*)
+      case csb => slurp.applyRule(csb, e, ignoreSelectThis.value)
     }
   }
-
-  def apply(in: NodeSeq): NodeSeq = in flatMap {
-    case Group(g) => apply(g)
-    case e: Elem => treatElem(e)
-    case x => x
-  }
   
+  private val ignoreSelectThis = new ThreadGlobal[Boolean]
+  
+  def apply(in: NodeSeq): NodeSeq = run(in, false)
+
+  private def run(in: NodeSeq, ignore: Boolean): NodeSeq =
+    try {
+      this.ignoreSelectThis.doWith(ignore) {
+        in flatMap {
+          case Group(g) => apply(g)
+          case e: Elem => treatElem(e)
+          case x => x
+        }
+      }
+    } catch {
+      case RetryWithException(newElem) =>
+        run(newElem, true)
+    }
 }
+
+private case class RetryWithException(e: Elem) extends Exception()
 
 object CssBind {
   def unapply(in: CssBind): Option[CssSelector] = in.css

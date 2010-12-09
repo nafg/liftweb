@@ -130,6 +130,14 @@ object LiftRules extends Factory with FormVendor with LazyLoggable {
     case (httpSession, contextPath) => new LiftSession(contextPath, httpSession.sessionId, Full(httpSession))
   }
 
+  /**
+   * A method that returns a function to create migratory sessions.  If you want migratory sessions for your
+   * application, <code>LiftRules.sessionCreator = LiftRules.sessionCreatorForMigratorySessions</code>
+   */
+  def sessionCreatorForMigratorySessions: (HTTPSession, String) => LiftSession = {
+    case (httpSession, contextPath) => new LiftSession(contextPath, httpSession.sessionId, Full(httpSession)) with MigratorySession
+  }
+
   @volatile var enableContainerSessions = true
 
   @volatile var getLiftSession: (Req) => LiftSession = (req) => _getLiftSession(req)
@@ -161,7 +169,7 @@ object LiftRules extends Factory with FormVendor with LazyLoggable {
     else
       Empty
 
-    val ret = SessionMaster.getSession(req.request, cometSessionId) match {
+    val ret = SessionMaster.getSession(req, cometSessionId) match {
       case Full(ret) =>
         ret.fixSessionTime()
         ret
@@ -169,7 +177,9 @@ object LiftRules extends Factory with FormVendor with LazyLoggable {
       case _ =>
         val ret = LiftSession(req)
         ret.fixSessionTime()
-        SessionMaster.addSession(ret, req.request.userAgent, SessionMaster.getIpFromReq(req))
+        SessionMaster.addSession(ret, req, 
+                                 req.request.userAgent,
+                                 SessionMaster.getIpFromReq(req))
         ret
     }
 
@@ -211,6 +221,12 @@ object LiftRules extends Factory with FormVendor with LazyLoggable {
    * to any URL reference from the markup of Ajax request.
    */
   val urlDecorate = RulesSeq[URLDecoratorPF]
+
+  /**
+   * Should the JSESSIONID be encoded in the URL if cookies are
+   * not supported
+   */
+  @volatile var encodeJSessionIdInUrl_? = false
 
   /**
   * Partial function to allow you to build a CometActor from code rather than via reflection
@@ -321,7 +337,9 @@ object LiftRules extends Factory with FormVendor with LazyLoggable {
   }
 
   /**
-   * Set the doc type used.
+   * Set the doc type used.  Use the HtmlProperties
+   *
+   * @deprecated
    */
   val docType: FactoryMaker[Req => Box[String]] = new FactoryMaker( (r: Req) => r  match {
     case _ if S.skipDocType => Empty
@@ -500,17 +518,25 @@ object LiftRules extends Factory with FormVendor with LazyLoggable {
         "surround" -> Surround,
         "test_cond" -> TestCond,
         "TestCond" -> TestCond,
+        "testcond" -> TestCond,
         "embed" -> Embed,
         "tail" -> Tail,
         "with-param" -> WithParam,
+        "withparam" -> WithParam,
+        "WithParam" -> WithParam,
         "bind-at" -> WithParam,
         "VersionInfo" -> VersionInfo,
+        "versioninfo" -> VersionInfo,
         "version_info" -> VersionInfo,
         "SkipDocType" -> SkipDocType,
+        "skipdoctype" -> SkipDocType,
         "skip_doc_type" -> SkipDocType,
         "xml_group" -> XmlGroup,
         "XmlGroup" -> XmlGroup,
+        "xmlgroup" -> XmlGroup,
         "lazy-load" -> LazyLoad,
+        "LazyLoad" -> LazyLoad,
+        "lazyload" -> LazyLoad,
         "html5" -> HTML5,
         "HTML5" -> HTML5,
         "with-resource-id" -> WithResourceId
@@ -633,6 +659,16 @@ object LiftRules extends Factory with FormVendor with LazyLoggable {
 
   val resourceBundleFactories = RulesSeq[ResourceBundleFactoryPF]
 
+  /**
+   * Given the current location (based on the Req.path.partPath),
+   * what are the resource bundles in the templates for the current
+   * page.
+   *
+   * @see DefaultRoutines.resourceForCurrentLoc()
+   */
+  val resourceForCurrentLoc: FactoryMaker[() => List[ResourceBundle]] =
+    new FactoryMaker(() => () => DefaultRoutines.resourceForCurrentReq()) {}
+
   private var _sitemap: Box[SiteMap] = Empty
 
   private var sitemapFunc: Box[() => SiteMap] = Empty
@@ -711,6 +747,17 @@ object LiftRules extends Factory with FormVendor with LazyLoggable {
       sitemapRequestVar.is
     }
   } else _sitemap
+
+  /**
+   * A unified set of properties for managing how to treat
+   * HTML, XHTML, HTML5.  The default behavior is to return an
+   * OldHtmlPropteries instance, but you can change this
+   * to return an Html5Properties instance any you'll get
+   * HTML5 support.
+   * LiftRules.htmlProperties.default.set((r: Req) => new Html5Properties(r.userAgent))
+   */
+  val htmlProperties: FactoryMaker[Req => HtmlProperties] =
+    new FactoryMaker(() => (r: Req) => (new OldHtmlProperties(r.userAgent): HtmlProperties)) {}
 
   /**
    * How long should we wait for all the lazy snippets to render
@@ -826,7 +873,7 @@ object LiftRules extends Factory with FormVendor with LazyLoggable {
   @volatile var calcCometPath: String => JsExp = prefix => {
     Str(prefix + "/" + cometPath + "/") +
             JsRaw("Math.floor(Math.random() * 100000000000)") +
-            Str(S.session.map(s => S.encodeURL("/" + s.uniqueId)) openOr "")
+            Str(S.session.map(session => S.encodeURL("/" + session.uniqueId)) openOr "xx") + Str("/") + JsRaw("lift_page")
   }
 
 
@@ -879,7 +926,7 @@ object LiftRules extends Factory with FormVendor with LazyLoggable {
 
   private val defaultFinder = getClass.getResource _
 
-  private def resourceFinder(name: String): _root_.java.net.URL = _context.resource(name)
+  private def resourceFinder(name: String): _root_.java.net.URL = if (null eq _context) null else _context.resource(name)
 
   /**
    * Obtain the resource URL by name
@@ -1003,7 +1050,7 @@ object LiftRules extends Factory with FormVendor with LazyLoggable {
   private def cvt(ns: Node, headers: List[(String, String)], cookies: List[HTTPCookie], req: Req, code:Int) =
     convertResponse({
       val ret = XhtmlResponse(ns,
-        LiftRules.docType.vend(req),
+        /*LiftRules.docType.vend(req)*/S.htmlProperties.docType,
         headers, cookies, code,
         S.ieMode)
       ret._includeXmlVersion = !S.skipDocType
@@ -1098,11 +1145,11 @@ object LiftRules extends Factory with FormVendor with LazyLoggable {
   @volatile var exceptionHandler = RulesSeq[ExceptionHandlerPF].append {
     case (Props.RunModes.Development, r, e) =>
       logger.error("Exception being returned to browser when processing " + r.uri.toString + ": " + showException(e))
-      XhtmlResponse((<html> <body>Exception occured while processing {r.uri}<pre>{showException(e)}</pre> </body> </html>), LiftRules.docType.vend(r), List("Content-Type" -> "text/html; charset=utf-8"), Nil, 500, S.ieMode)
+      XhtmlResponse((<html> <body>Exception occured while processing {r.uri}<pre>{showException(e)}</pre> </body> </html>), S.htmlProperties.docType, List("Content-Type" -> "text/html; charset=utf-8"), Nil, 500, S.ieMode)
 
     case (_, r, e) =>
       logger.error("Exception being returned to browser when processing " + r, e)
-      XhtmlResponse((<html> <body>Something unexpected happened while serving the page at {r.uri}</body> </html>), LiftRules.docType.vend(r), List("Content-Type" -> "text/html; charset=utf-8"), Nil, 500, S.ieMode)
+      XhtmlResponse((<html> <body>Something unexpected happened while serving the page at {r.uri}</body> </html>), S.htmlProperties.docType, List("Content-Type" -> "text/html; charset=utf-8"), Nil, 500, S.ieMode)
   }
 
   /**

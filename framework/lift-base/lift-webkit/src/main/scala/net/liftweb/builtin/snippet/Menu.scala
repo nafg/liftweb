@@ -155,10 +155,11 @@ object Menu extends DispatchSnippet {
                                        <xml:group> <span>{text}</span>{ifExpandCurrent(buildUlLine(kids))}</xml:group>) %
                                   S.prefixedAttrsToMetaData("li_item", liMap))
 
+            // Not current, but on the path, so we need to expand children to show the current one
             case MenuItem(text, uri, kids, _, true, _) =>
               Helpers.addCssClass(i.cssClass,
                                   Elem(null, innerTag, Null, TopScope,
-                                       <xml:group> <a href={uri}>{text}</a>{ifExpandAll(buildUlLine(kids))}</xml:group>) %
+                                       <xml:group> <a href={uri}>{text}</a>{buildUlLine(kids)}</xml:group>) %
                                   S.prefixedAttrsToMetaData("li_path", liMap))
 
             case MenuItem(text, uri, kids, _, _, _) =>
@@ -243,12 +244,60 @@ object Menu extends DispatchSnippet {
    * &lt;/head&gt;
    * ...
    * </pre>
+   * <p>HTML5 does not support tags inside the &lt;title&gt; tag,
+   * so you must do:
+   * </p>
+   *
+   * <pre>
+   *    * &lt;head&gt;
+   *   &lt;title class=&quot;lift:Menu.title&quote;&gt;The page named %*% is being displayed&lt;/title&gt;
+   * &lt;/head&gt;
+   * </pre>
+   * <p>
+   * And Lift will substitute the title at the %*% marker, alternative, Lift
+   * will append the Menu.title to the contents of the &lt;title&gt; tag.
+   * </p>
    */
   def title(text: NodeSeq): NodeSeq = {
     val r =
-    for (request <- S.request;
-         loc <- request.location) yield loc.title
-    r openOr Text("")
+      for (request <- S.request;
+           loc <- request.location) yield loc.title
+
+    text match {
+      case TitleText(attrs, str) => {
+        r.map {
+          rt => {
+            val rts = rt.text
+            val idx = str.indexOf("%*%")
+            val bodyStr = if (idx >= 0) {
+              str.substring(0, idx) + rts + str.substring(idx + 3)
+            } else {
+              str +" "+rts
+            }
+
+            <title>{bodyStr}</title> % attrs
+          }
+        } openOr text
+      }
+
+      case _ => {
+        r openOr Text("")
+      }
+    }
+  }
+
+  private object TitleText {
+    def unapply(in: NodeSeq): Option[(MetaData, String)] =
+      if (in.length == 1 && in(0).isInstanceOf[Elem]) {
+        val e = in(0).asInstanceOf[Elem]
+        if (e.prefix == null && e.label == "title") {
+          if (e.child.length == 0) {
+            Some(e.attributes -> "")
+          } else if (e.child.length == 1 && e.child(0).isInstanceOf[Atom[_]]) {
+            Some(e.attributes -> e.child.text)
+          } else None
+        } else None
+      } else None
   }
 
   /**

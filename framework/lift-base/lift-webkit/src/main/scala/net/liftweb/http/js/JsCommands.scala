@@ -468,10 +468,19 @@ trait HtmlFixer {
    * This method must be run in the context of the thing creating the XHTML
    * to capture the bound functions
    */
-  protected def fixHtml(uid: String, content: NodeSeq): String =
-  AltXML.toXML(Group(S.session.map(s => s.fixHtml(s.processSurroundAndInclude("JS SetHTML id: " + uid, content))).openOr(content)),
-               false, true, S.ieMode).encJs
-
+  protected def fixHtml(uid: String, content: NodeSeq): String = {
+    val w = new java.io.StringWriter
+    
+    S.htmlProperties.
+    htmlWriter(Group(S.session.
+                     map(s =>
+                       s.fixHtml(s.processSurroundAndInclude("JS SetHTML id: "
+                                                             + uid,
+                                                             content))).
+                     openOr(content)),
+               w)
+    w.toString.encJs
+  }
 }
 
 trait JsCmd extends HtmlFixer with ToJsCmd {
@@ -670,6 +679,23 @@ object JsCmds {
 
   case class JsTry(what: JsCmd, alert: Boolean) extends JsCmd {
     def toJsCmd = "try { " + what.toJsCmd + " } catch (e) {" + (if (alert) "alert(e);" else "") + "}"
+  }
+
+  /**
+   * A companion object with a helpful alternative constructor
+   */
+  object RedirectTo {
+    /**
+     * Redirect to a page and execute the function
+     * when the page is loaded (only if the page is on the
+     * same server, not going to some other server on the internet)
+     */
+    def apply(where: String, func: () => Unit): RedirectTo =
+    S.session match {
+      case Full(liftSession) => 
+        new RedirectTo(liftSession.attachRedirectFunc(where, Full(func)))
+      case _ => new RedirectTo(where)
+    }
   }
 
   case class RedirectTo(where: String) extends JsCmd {
