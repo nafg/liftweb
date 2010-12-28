@@ -29,9 +29,6 @@ tmp*
 dist
 test-output
 
-# Validation against Scala 2.8.0 leaves this
-invoke-scala-280/
-
 # sbt
 target
 lib_managed
