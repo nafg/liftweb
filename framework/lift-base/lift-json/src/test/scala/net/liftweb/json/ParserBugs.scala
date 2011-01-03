@@ -17,13 +17,11 @@
 package net.liftweb {
 package json {
 
-import _root_.org.specs.Specification
-import _root_.org.specs.runner.{Runner, JUnit}
+import org.specs.Specification
+import org.specs.runner.{Runner, JUnit}
 
 class ParserBugsTest extends Runner(ParserBugs) with JUnit
 object ParserBugs extends Specification {
-  import JsonParser.parseOpt
-
   "Unicode ffff is a valid char in string literal" in {
     parseOpt(""" {"x":"\uffff"} """).isDefined mustEqual true
   }

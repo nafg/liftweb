@@ -17,8 +17,6 @@
 package net.liftweb {
 package json {
 
-import JsonAST._
-
 /** A difference between two JSONs (j1 diff j2).
  * @param changed what has changed from j1 to j2
  * @param added what has been added to j2
@@ -65,7 +63,7 @@ object Diff {
       case x :: xs => yleft find (_.name == x.name) match {
         case Some(y) =>
           val Diff(c1, a1, d1) = diff(x, y)
-          val Diff(c2, a2, d2) = diffRec(xs, yleft-y)
+          val Diff(c2, a2, d2) = diffRec(xs, yleft filterNot (_ == y))
           Diff(c1 ++ c2, a1 ++ a2, d1 ++ d2) map {
             case f: JField => JObject(f :: Nil)
             case x => x

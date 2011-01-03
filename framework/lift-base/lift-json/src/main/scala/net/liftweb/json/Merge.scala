@@ -20,8 +20,6 @@ package json {
 /** Function to merge two JSONs.
  */
 object Merge {
-  import JsonAST._
-
   /** Return merged JSON.
    * <p>
    * Example:<pre>
@@ -43,7 +41,8 @@ object Merge {
     def mergeRec(xleft: List[JField], yleft: List[JField]): List[JField] = xleft match {
       case Nil => yleft
       case JField(xn, xv) :: xs => yleft find (_.name == xn) match {
-        case Some(y @ JField(yn, yv)) => JField(xn, merge(xv, yv)) :: mergeRec(xs, yleft-y)
+        case Some(y @ JField(yn, yv)) => 
+          JField(xn, merge(xv, yv)) :: mergeRec(xs, yleft filterNot (_ == y))
         case None => JField(xn, xv) :: mergeRec(xs, yleft)
       }
     }
@@ -55,7 +54,7 @@ object Merge {
     def mergeRec(xleft: List[JValue], yleft: List[JValue]): List[JValue] = xleft match {
       case Nil => yleft
       case x :: xs => yleft find (_ == x) match {
-        case Some(y) => merge(x, y) :: mergeRec(xs, yleft-y)
+        case Some(y) => merge(x, y) :: mergeRec(xs, yleft filterNot (_ == y))
         case None => x :: mergeRec(xs, yleft)
       }
     }

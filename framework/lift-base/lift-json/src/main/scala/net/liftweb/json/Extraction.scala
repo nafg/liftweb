@@ -21,7 +21,6 @@ import java.lang.reflect.{Constructor => JConstructor, Type}
 import java.lang.{Integer => JavaInteger, Long => JavaLong, Short => JavaShort, Byte => JavaByte, Boolean => JavaBoolean, Double => JavaDouble, Float => JavaFloat}
 import java.util.Date
 import scala.reflect.Manifest
-import JsonAST._
 
 /** Function to extract values from JSON AST using case classes.
  *
@@ -96,15 +95,14 @@ object Extraction {
 
     def flatten0(path: String, json: JValue): Map[String, String] = {
       json match {
-        case JNothing | JNull           => Map()
-        case JString(s: String)         => Map(path -> ("\"" + quote(s) + "\""))
-        case JDouble(num: Double)       => Map(path -> num.toString)
-        case JInt(num: BigInt)          => Map(path -> num.toString)
-        case JBool(value: Boolean)      => Map(path -> value.toString)
-        case JField(name: String, 
-                    value: JValue)      => flatten0(path + escapePath(name), value)
-        case JObject(obj: List[JField]) => obj.foldLeft(Map[String, String]()) { (map, field) => map ++ flatten0(path + ".", field) }
-        case JArray(arr: List[JValue])  => arr.length match {
+        case JNothing | JNull    => Map()
+        case JString(s)          => Map(path -> ("\"" + JsonAST.quote(s) + "\""))
+        case JDouble(num)        => Map(path -> num.toString)
+        case JInt(num)           => Map(path -> num.toString)
+        case JBool(value)        => Map(path -> value.toString)
+        case JField(name, value) => flatten0(path + escapePath(name), value)
+        case JObject(obj)        => obj.foldLeft(Map[String, String]()) { (map, field) => map ++ flatten0(path + ".", field) }
+        case JArray(arr)         => arr.length match {
           case 0 => Map(path -> "[]")
           case _ => arr.foldLeft((Map[String, String](), 0)) { 
                       (tuple, value) => (tuple._1 ++ flatten0(path + "[" + tuple._2 + "]", value), tuple._2 + 1) 
@@ -153,7 +151,7 @@ object Extraction {
           case ArrayElem(p, i)    => set + p        
           case x @ _              => set + x
         }
-    }.toList.sort(_ < _) // Sort is necessary to get array order right
+    }.toList.sortWith(_ < _) // Sort is necessary to get array order right
     
     uniquePaths.foldLeft[JValue](JNothing) { (jvalue, key) => 
       jvalue.merge(key match {
@@ -166,15 +164,19 @@ object Extraction {
   }
 
   private def extract0[A](json: JValue, mf: Manifest[A])(implicit formats: Formats): A = {
-    if (mf.erasure == classOf[List[_]] || mf.erasure == classOf[Map[_, _]])
-      fail("Root object can't yet be List or Map (needs a feature from Scala 2.8)")
-
-    extract(json, TypeInfo(mf.erasure, None)).asInstanceOf[A]
+    val mapping = 
+      if (mf.erasure == classOf[List[_]] || mf.erasure == classOf[Set[_]] || mf.erasure == classOf[Array[_]]) 
+        Col(mf.erasure, mappingOf(mf.typeArguments(0).erasure))
+      else if (mf.erasure == classOf[Map[_, _]]) 
+        Dict(mappingOf(mf.typeArguments(1).erasure))
+      else mappingOf(mf.erasure)
+    extract0(json, mapping).asInstanceOf[A]
   }
 
-  def extract(json: JValue, target: TypeInfo)(implicit formats: Formats): Any = {
-    val mapping = mappingOf(target.clazz)
+  def extract(json: JValue, target: TypeInfo)(implicit formats: Formats): Any = 
+    extract0(json, mappingOf(target.clazz))
 
+  private def extract0(json: JValue, mapping: Mapping)(implicit formats: Formats): Any = {
     def newInstance(constructor: Constructor, json: JValue) = {
       def findBestConstructor = {
         if (constructor.choices.size == 1) constructor.choices.head // optimized common case
@@ -277,8 +279,7 @@ object Extraction {
 
     def fieldValue(json: JValue): JValue = json match {
       case JField(_, value) => value
-      case JNothing => JNothing
-      case x => fail("Expected JField but got " + x)
+      case x => x
     }
 
     build(json, mapping)
@@ -311,6 +312,9 @@ object Extraction {
     case JString(s) if (targetType == classOf[Date]) => formats.dateFormat.parse(s).getOrElse(fail("Invalid date '" + s + "'"))
     case JBool(x) if (targetType == classOf[Boolean]) => x
     case JBool(x) if (targetType == classOf[JavaBoolean]) => new JavaBoolean(x)
+    case j: JValue if (targetType == classOf[JValue]) => j
+    case j: JObject if (targetType == classOf[JObject]) => j
+    case j: JArray if (targetType == classOf[JArray]) => j
     case JNull => null
     case JNothing => fail("Did not find value which can be converted into " + targetType.getName)
     case JField(_, x) => convert(x, targetType, formats)

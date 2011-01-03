@@ -18,8 +18,6 @@ package net.liftweb {
 package json {
 
 import scala.reflect.Manifest
-import JsonAST._
-import JsonParser.parse
 
 /** Functions to serialize and deserialize a case class.
  * Custom serializer can be inserted if a class is not a case class.
@@ -51,8 +49,8 @@ object Serialization {
 
   /** Deserialize from a Reader.
    */
-  def read[A, R <: Reader](in: Reader)(implicit formats: Formats, mf: Manifest[A]): A =
-    parse(in).extract(formats, mf)
+  def read[A](in: Reader)(implicit formats: Formats, mf: Manifest[A]): A =
+    JsonParser.parse(in).extract(formats, mf)
 
   /** Create Serialization formats with given type hints.
    * <p>

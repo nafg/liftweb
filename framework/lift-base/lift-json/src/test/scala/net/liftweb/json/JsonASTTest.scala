@@ -17,16 +17,14 @@
 package net.liftweb {
 package json {
 
-import _root_.org.scalacheck._
-import _root_.org.scalacheck.Prop.{forAll, forAllNoShrink}
-import _root_.org.specs.Specification
-import _root_.org.specs.runner.{Runner, JUnit}
-import _root_.org.specs.ScalaCheck
+import org.scalacheck._
+import org.scalacheck.Prop.{forAll, forAllNoShrink}
+import org.specs.Specification
+import org.specs.runner.{Runner, JUnit}
+import org.specs.ScalaCheck
 
 class JsonASTTest extends Runner(JsonASTSpec) with JUnit
 object JsonASTSpec extends Specification with JValueGen with ScalaCheck {
-  import JsonAST._
-
   "Functor identity" in {
     val identityProp = (json: JValue) => json == (json map identity)
     forAll(identityProp) must pass
@@ -126,13 +124,13 @@ object JsonASTSpec extends Specification with JValueGen with ScalaCheck {
           case Nil => x == in
 
           case name :: Nil => (in \ name) match {
-            case JField(`name`, `replacement`) => true
+            case `replacement` => true
             case _ => false
           }
 
           case name :: xs => (in \ name) match {
-            case JField(`name`, value) => replaced(xs, value)
-            case _ => false
+            case JNothing => false
+            case value => replaced(xs, value)
           }
         }
       }

@@ -17,18 +17,14 @@
 package net.liftweb {
 package json {
 
-import _root_.org.scalacheck._
-import _root_.org.scalacheck.Prop._
-import _root_.org.specs.Specification
-import _root_.org.specs.runner.{Runner, JUnit}
-import _root_.org.specs.ScalaCheck
+import org.scalacheck._
+import org.scalacheck.Prop._
+import org.specs.Specification
+import org.specs.runner.{Runner, JUnit}
+import org.specs.ScalaCheck
 
 class ParserTest extends Runner(ParserSpec) with JUnit
 object ParserSpec extends Specification with JValueGen with ScalaCheck {
-  import JsonAST._
-  import JsonParser._
-  import Printer._
-
   "Any valid json can be parsed" in {
     val parsing = (json: JValue) => { parse(Printer.pretty(render(json))); true }
     forAll(parsing) must pass
@@ -71,7 +67,7 @@ object ParserSpec extends Specification with JValueGen with ScalaCheck {
       }
     }
 
-    val json = parse(new StingyReader(""" ["hello"] """))
+    val json = JsonParser.parse(new StingyReader(""" ["hello"] """))
     json mustEqual JArray(JString("hello") :: Nil)
   }
 

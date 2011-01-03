@@ -17,13 +17,11 @@
 package net.liftweb {
 package json {
 
-import _root_.org.specs.Specification
-import _root_.org.specs.runner.{Runner, JUnit}
+import org.specs.Specification
+import org.specs.runner.{Runner, JUnit}
 
 class DiffExamplesTest extends Runner(DiffExamples) with JUnit
 object DiffExamples extends Specification {
-  import JsonAST._
-  import JsonParser._
   import MergeExamples.{scala1, scala2, lotto1, lotto2, mergedLottoResult}
 
   "Diff example" in {

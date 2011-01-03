@@ -1,5 +1,5 @@
 diff --git archetypes/lift-archetype-basic/pom.xml archetypes/lift-archetype-basic/pom.xml
-index d36582f..44f96c5 100644
+index 483ab3f..5921e25 100644
 --- archetypes/lift-archetype-basic/pom.xml
 +++ archetypes/lift-archetype-basic/pom.xml
 @@ -23,10 +23,10 @@
@@ -8,7 +8,7 @@ index d36582f..44f96c5 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>archetypes_2.8.1</artifactId>
 +    <artifactId>archetypes_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-archetype-basic_2.8.1</artifactId>
 +  <artifactId>lift-archetype-basic_2.8.0</artifactId>
@@ -16,7 +16,7 @@ index d36582f..44f96c5 100644
  
    <properties>
 diff --git archetypes/lift-archetype-blank/pom.xml archetypes/lift-archetype-blank/pom.xml
-index c2db6f0..a936152 100644
+index f2cdbf6..33bf4a9 100644
 --- archetypes/lift-archetype-blank/pom.xml
 +++ archetypes/lift-archetype-blank/pom.xml
 @@ -23,10 +23,10 @@
@@ -25,7 +25,7 @@ index c2db6f0..a936152 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>archetypes_2.8.1</artifactId>
 +    <artifactId>archetypes_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-archetype-blank_2.8.1</artifactId>
 +  <artifactId>lift-archetype-blank_2.8.0</artifactId>
@@ -33,7 +33,7 @@ index c2db6f0..a936152 100644
  
    <properties>
 diff --git archetypes/lift-archetype-jpa-basic/pom.xml archetypes/lift-archetype-jpa-basic/pom.xml
-index 209cf48..17dfcbc 100644
+index b96f0ee..8265e6e 100644
 --- archetypes/lift-archetype-jpa-basic/pom.xml
 +++ archetypes/lift-archetype-jpa-basic/pom.xml
 @@ -23,10 +23,10 @@
@@ -42,7 +42,7 @@ index 209cf48..17dfcbc 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>archetypes_2.8.1</artifactId>
 +    <artifactId>archetypes_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-archetype-jpa-basic_2.8.1</artifactId>
 +  <artifactId>lift-archetype-jpa-basic_2.8.0</artifactId>
@@ -50,7 +50,7 @@ index 209cf48..17dfcbc 100644
  
    <properties>
 diff --git archetypes/lift-archetype-jpa-blank-single/pom.xml archetypes/lift-archetype-jpa-blank-single/pom.xml
-index d3192d9..d61824a 100644
+index 8c91af5..0aa4891 100644
 --- archetypes/lift-archetype-jpa-blank-single/pom.xml
 +++ archetypes/lift-archetype-jpa-blank-single/pom.xml
 @@ -23,10 +23,10 @@
@@ -59,7 +59,7 @@ index d3192d9..d61824a 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>archetypes_2.8.1</artifactId>
 +    <artifactId>archetypes_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-archetype-jpa-blank-single_2.8.1</artifactId>
 +  <artifactId>lift-archetype-jpa-blank-single_2.8.0</artifactId>
@@ -67,7 +67,7 @@ index d3192d9..d61824a 100644
  
    <properties>
 diff --git archetypes/lift-archetype-jpa-blank/pom.xml archetypes/lift-archetype-jpa-blank/pom.xml
-index 9af159a..f99cd17 100644
+index f680854..725f932 100644
 --- archetypes/lift-archetype-jpa-blank/pom.xml
 +++ archetypes/lift-archetype-jpa-blank/pom.xml
 @@ -23,10 +23,10 @@
@@ -76,7 +76,7 @@ index 9af159a..f99cd17 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>archetypes_2.8.1</artifactId>
 +    <artifactId>archetypes_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-archetype-jpa-blank_2.8.1</artifactId>
 +  <artifactId>lift-archetype-jpa-blank_2.8.0</artifactId>
@@ -84,7 +84,7 @@ index 9af159a..f99cd17 100644
  
    <properties>
 diff --git archetypes/lift-archetype-sbt/pom.xml archetypes/lift-archetype-sbt/pom.xml
-index 46fdbad..7a402b3 100644
+index 9f3a16c..694f388 100644
 --- archetypes/lift-archetype-sbt/pom.xml
 +++ archetypes/lift-archetype-sbt/pom.xml
 @@ -23,10 +23,10 @@
@@ -93,7 +93,7 @@ index 46fdbad..7a402b3 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>archetypes_2.8.1</artifactId>
 +    <artifactId>archetypes_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-archetype-sbt_2.8.1</artifactId>
 +  <artifactId>lift-archetype-sbt_2.8.0</artifactId>
@@ -101,7 +101,7 @@ index 46fdbad..7a402b3 100644
  
    <properties>
 diff --git archetypes/pom.xml archetypes/pom.xml
-index 99c11d9..a5df995 100644
+index 57884c9..e017e1e 100644
 --- archetypes/pom.xml
 +++ archetypes/pom.xml
 @@ -35,11 +35,11 @@
@@ -110,7 +110,7 @@ index 99c11d9..a5df995 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-parent_2.8.1</artifactId>
 +    <artifactId>lift-parent_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
      <relativePath>../resources/lift-parent/pom.xml</relativePath>
    </parent>
 -  <artifactId>archetypes_2.8.1</artifactId>
@@ -119,7 +119,7 @@ index 99c11d9..a5df995 100644
  
    <!--
 diff --git examples/JPADemo/JPADemo-spa/pom.xml examples/JPADemo/JPADemo-spa/pom.xml
-index 96acb79..760f344 100644
+index 25c1841..1a938b7 100644
 --- examples/JPADemo/JPADemo-spa/pom.xml
 +++ examples/JPADemo/JPADemo-spa/pom.xml
 @@ -4,11 +4,11 @@
@@ -128,7 +128,7 @@ index 96acb79..760f344 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>JPADemo-Master_2.8.1</artifactId>
 +    <artifactId>JPADemo-Master_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
  
 -  <artifactId>JPADemo-spa_2.8.1</artifactId>
@@ -137,7 +137,7 @@ index 96acb79..760f344 100644
    <name>JPADemo-spa</name>
  
 diff --git examples/JPADemo/JPADemo-web/pom.xml examples/JPADemo/JPADemo-web/pom.xml
-index e3459fa..595606c 100644
+index 25e6ecd..02be9c9 100644
 --- examples/JPADemo/JPADemo-web/pom.xml
 +++ examples/JPADemo/JPADemo-web/pom.xml
 @@ -3,11 +3,11 @@
@@ -146,7 +146,7 @@ index e3459fa..595606c 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>JPADemo-Master_2.8.1</artifactId>
 +    <artifactId>JPADemo-Master_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
  
 -  <artifactId>JPADemo-web_2.8.1</artifactId>
@@ -155,7 +155,7 @@ index e3459fa..595606c 100644
    <name>JPADemo-web</name>
  
 diff --git examples/JPADemo/pom.xml examples/JPADemo/pom.xml
-index 27402e4..fadf611 100644
+index 494d9a4..f996e5a 100644
 --- examples/JPADemo/pom.xml
 +++ examples/JPADemo/pom.xml
 @@ -4,11 +4,11 @@
@@ -164,7 +164,7 @@ index 27402e4..fadf611 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>examples_2.8.1</artifactId>
 +    <artifactId>examples_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
  
 -  <artifactId>JPADemo-Master_2.8.1</artifactId>
@@ -173,7 +173,7 @@ index 27402e4..fadf611 100644
    <name>JPA Demo Master</name>
    <inceptionYear>2007</inceptionYear>
 diff --git examples/example/pom.xml examples/example/pom.xml
-index f806578..47abc87 100644
+index 7f0756a..7366e25 100644
 --- examples/example/pom.xml
 +++ examples/example/pom.xml
 @@ -4,11 +4,11 @@
@@ -182,7 +182,7 @@ index f806578..47abc87 100644
          <groupId>net.liftweb</groupId>
 -        <artifactId>examples_2.8.1</artifactId>
 +        <artifactId>examples_2.8.0</artifactId>
-         <version>2.2-SNAPSHOT</version>
+         <version>2.3-SNAPSHOT</version>
      </parent>
  
 -    <artifactId>lift-example_2.8.1</artifactId>
@@ -191,7 +191,7 @@ index f806578..47abc87 100644
      <name>Lift Standard Example</name>
  
 diff --git examples/examples-osgi/hello/pom.xml examples/examples-osgi/hello/pom.xml
-index 753beaf..1a9b56d 100644
+index e8d3d22..008a9bb 100644
 --- examples/examples-osgi/hello/pom.xml
 +++ examples/examples-osgi/hello/pom.xml
 @@ -5,11 +5,11 @@
@@ -200,7 +200,7 @@ index 753beaf..1a9b56d 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>examples-osgi_2.8.1</artifactId>
 +    <artifactId>examples-osgi_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
  
 -  <artifactId>examples-osgi-hello_2.8.1</artifactId>
@@ -209,7 +209,7 @@ index 753beaf..1a9b56d 100644
    <description>OSGi Examples for Lift - Hello</description>
    <packaging>jar</packaging>
 diff --git examples/examples-osgi/pom.xml examples/examples-osgi/pom.xml
-index 0e0b8c3..783d82f 100644
+index a1e01e7..4b03ba1 100644
 --- examples/examples-osgi/pom.xml
 +++ examples/examples-osgi/pom.xml
 @@ -5,11 +5,11 @@
@@ -218,7 +218,7 @@ index 0e0b8c3..783d82f 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>examples_2.8.1</artifactId>
 +    <artifactId>examples_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
  
 -  <artifactId>examples-osgi_2.8.1</artifactId>
@@ -227,7 +227,7 @@ index 0e0b8c3..783d82f 100644
    <packaging>pom</packaging>
  
 diff --git examples/flotDemo/pom.xml examples/flotDemo/pom.xml
-index 9f54afd..a27ecb3 100755
+index 8e12c4a..bc25189 100755
 --- examples/flotDemo/pom.xml
 +++ examples/flotDemo/pom.xml
 @@ -3,11 +3,11 @@
@@ -236,7 +236,7 @@ index 9f54afd..a27ecb3 100755
      <groupId>net.liftweb</groupId>
 -    <artifactId>examples_2.8.1</artifactId>
 +    <artifactId>examples_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
  
 -  <artifactId>lift-flot-demo_2.8.1</artifactId>
@@ -245,7 +245,7 @@ index 9f54afd..a27ecb3 100755
    <name>Lift Flot widget example</name>
  
 diff --git examples/hellodarwin/pom.xml examples/hellodarwin/pom.xml
-index a167b0c..0e1cb2b 100644
+index ab609cf..f507be4 100644
 --- examples/hellodarwin/pom.xml
 +++ examples/hellodarwin/pom.xml
 @@ -4,11 +4,11 @@
@@ -254,7 +254,7 @@ index a167b0c..0e1cb2b 100644
        <groupId>net.liftweb</groupId>
 -      <artifactId>examples_2.8.1</artifactId>
 +      <artifactId>examples_2.8.0</artifactId>
-       <version>2.2-SNAPSHOT</version>
+       <version>2.3-SNAPSHOT</version>
    </parent>
  
 -  <artifactId>hellodarwin_2.8.1</artifactId>
@@ -263,7 +263,7 @@ index a167b0c..0e1cb2b 100644
    <name>HelloDarwin tutorial application</name>
    <!--
 diff --git examples/hellofbc/pom.xml examples/hellofbc/pom.xml
-index 018aaf4..56af99f 100644
+index 7ae3319..89180f2 100644
 --- examples/hellofbc/pom.xml
 +++ examples/hellofbc/pom.xml
 @@ -3,11 +3,11 @@
@@ -272,7 +272,7 @@ index 018aaf4..56af99f 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>examples_2.8.1</artifactId>
 +    <artifactId>examples_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
  
 -  <artifactId>lift-hellofbc_2.8.1</artifactId>
@@ -281,7 +281,7 @@ index 018aaf4..56af99f 100644
    <name>Facebook Connect Example Application</name>
  
 diff --git examples/hellolift/pom.xml examples/hellolift/pom.xml
-index 9a0dfb4..09bc565 100644
+index 279039a..504ebe7 100644
 --- examples/hellolift/pom.xml
 +++ examples/hellolift/pom.xml
 @@ -3,11 +3,11 @@
@@ -290,7 +290,7 @@ index 9a0dfb4..09bc565 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>examples_2.8.1</artifactId>
 +    <artifactId>examples_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
  
 -  <artifactId>lift-hellolift_2.8.1</artifactId>
@@ -299,7 +299,7 @@ index 9a0dfb4..09bc565 100644
    <name>HelloLift example application</name>
  
 diff --git examples/helloscalate/pom.xml examples/helloscalate/pom.xml
-index 5ebec1e..a2b3405 100644
+index 54ba7a5..88ecd34 100644
 --- examples/helloscalate/pom.xml
 +++ examples/helloscalate/pom.xml
 @@ -3,11 +3,11 @@
@@ -308,7 +308,7 @@ index 5ebec1e..a2b3405 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>examples_2.8.1</artifactId>
 +    <artifactId>examples_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
  
 -  <artifactId>lift-hello-scalate_2.8.1</artifactId>
@@ -317,7 +317,7 @@ index 5ebec1e..a2b3405 100644
    <name>Scalate Example Application</name>
  
 diff --git examples/http-authentication/pom.xml examples/http-authentication/pom.xml
-index 21e48cf..35d940a 100644
+index 41d1089..6b74a84 100644
 --- examples/http-authentication/pom.xml
 +++ examples/http-authentication/pom.xml
 @@ -3,11 +3,11 @@
@@ -326,7 +326,7 @@ index 21e48cf..35d940a 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>examples_2.8.1</artifactId>
 +    <artifactId>examples_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
  
 -  <artifactId>http-authentication_2.8.1</artifactId>
@@ -335,7 +335,7 @@ index 21e48cf..35d940a 100644
    <name>HTTP Authentication example</name>
  
 diff --git examples/pom.xml examples/pom.xml
-index 03aebd0..f2e3e25 100644
+index 6d687f6..5e2c7d4 100644
 --- examples/pom.xml
 +++ examples/pom.xml
 @@ -35,11 +35,11 @@
@@ -344,7 +344,7 @@ index 03aebd0..f2e3e25 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-parent_2.8.1</artifactId>
 +    <artifactId>lift-parent_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
      <relativePath>../resources/lift-parent/pom.xml</relativePath>
    </parent>
 -  <artifactId>examples_2.8.1</artifactId>
@@ -353,7 +353,7 @@ index 03aebd0..f2e3e25 100644
  
    <!--
 diff --git examples/skittr/pom.xml examples/skittr/pom.xml
-index b76a8d9..109c41c 100644
+index 124729d..5052558 100644
 --- examples/skittr/pom.xml
 +++ examples/skittr/pom.xml
 @@ -3,11 +3,11 @@
@@ -362,7 +362,7 @@ index b76a8d9..109c41c 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>examples_2.8.1</artifactId>
 +    <artifactId>examples_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
  
 -  <artifactId>skittr-example_2.8.1</artifactId>
@@ -371,7 +371,7 @@ index b76a8d9..109c41c 100644
    <name>Skittr Example</name>
  
 diff --git framework/lift-base/lift-actor/pom.xml framework/lift-base/lift-actor/pom.xml
-index 572a85d..213b50a 100644
+index ccf6512..4b98994 100644
 --- framework/lift-base/lift-actor/pom.xml
 +++ framework/lift-base/lift-actor/pom.xml
 @@ -27,10 +27,10 @@
@@ -380,7 +380,7 @@ index 572a85d..213b50a 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-base_2.8.1</artifactId>
 +    <artifactId>lift-base_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-actor_2.8.1</artifactId>
 +  <artifactId>lift-actor_2.8.0</artifactId>
@@ -388,7 +388,7 @@ index 572a85d..213b50a 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-base/lift-common/pom.xml framework/lift-base/lift-common/pom.xml
-index e1f724e..3906fcf 100644
+index d75a59a..8338021 100644
 --- framework/lift-base/lift-common/pom.xml
 +++ framework/lift-base/lift-common/pom.xml
 @@ -27,10 +27,10 @@
@@ -397,7 +397,7 @@ index e1f724e..3906fcf 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-base_2.8.1</artifactId>
 +    <artifactId>lift-base_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-common_2.8.1</artifactId>
 +  <artifactId>lift-common_2.8.0</artifactId>
@@ -405,7 +405,7 @@ index e1f724e..3906fcf 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-base/lift-json-ext/pom.xml framework/lift-base/lift-json-ext/pom.xml
-index 998f33a..4eb4d7b 100644
+index a8f7ca9..2e24db4 100644
 --- framework/lift-base/lift-json-ext/pom.xml
 +++ framework/lift-base/lift-json-ext/pom.xml
 @@ -27,10 +27,10 @@
@@ -414,7 +414,7 @@ index 998f33a..4eb4d7b 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-base_2.8.1</artifactId>
 +    <artifactId>lift-base_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-json-ext_2.8.1</artifactId>
 +  <artifactId>lift-json-ext_2.8.0</artifactId>
@@ -422,7 +422,7 @@ index 998f33a..4eb4d7b 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-base/lift-json/pom.xml framework/lift-base/lift-json/pom.xml
-index b1c19c1..b7b0994 100644
+index aa830c9..7dc437a 100644
 --- framework/lift-base/lift-json/pom.xml
 +++ framework/lift-base/lift-json/pom.xml
 @@ -27,10 +27,10 @@
@@ -431,7 +431,7 @@ index b1c19c1..b7b0994 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-base_2.8.1</artifactId>
 +    <artifactId>lift-base_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-json_2.8.1</artifactId>
 +  <artifactId>lift-json_2.8.0</artifactId>
@@ -439,7 +439,7 @@ index b1c19c1..b7b0994 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-base/lift-util/pom.xml framework/lift-base/lift-util/pom.xml
-index b8b2bb6..7911322 100644
+index 2d54641..955edb8 100644
 --- framework/lift-base/lift-util/pom.xml
 +++ framework/lift-base/lift-util/pom.xml
 @@ -27,10 +27,10 @@
@@ -448,7 +448,7 @@ index b8b2bb6..7911322 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-base_2.8.1</artifactId>
 +    <artifactId>lift-base_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-util_2.8.1</artifactId>
 +  <artifactId>lift-util_2.8.0</artifactId>
@@ -456,7 +456,7 @@ index b8b2bb6..7911322 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-base/lift-webkit/pom.xml framework/lift-base/lift-webkit/pom.xml
-index ab11543..da4013e 100644
+index a5c9a4b..a833597 100644
 --- framework/lift-base/lift-webkit/pom.xml
 +++ framework/lift-base/lift-webkit/pom.xml
 @@ -27,10 +27,10 @@
@@ -465,7 +465,7 @@ index ab11543..da4013e 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-base_2.8.1</artifactId>
 +    <artifactId>lift-base_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-webkit_2.8.1</artifactId>
 +  <artifactId>lift-webkit_2.8.0</artifactId>
@@ -473,7 +473,7 @@ index ab11543..da4013e 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-base/pom.xml framework/lift-base/pom.xml
-index 959080f..1c5e00f 100644
+index 786dc4d..1c03631 100644
 --- framework/lift-base/pom.xml
 +++ framework/lift-base/pom.xml
 @@ -31,10 +31,10 @@
@@ -482,7 +482,7 @@ index 959080f..1c5e00f 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>framework_2.8.1</artifactId>
 +    <artifactId>framework_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-base_2.8.1</artifactId>
 +  <artifactId>lift-base_2.8.0</artifactId>
@@ -490,7 +490,7 @@ index 959080f..1c5e00f 100644
  
    <!--
 diff --git framework/lift-modules/lift-amqp/pom.xml framework/lift-modules/lift-amqp/pom.xml
-index d760352..054d840 100644
+index 82886a7..bc7cbde 100644
 --- framework/lift-modules/lift-amqp/pom.xml
 +++ framework/lift-modules/lift-amqp/pom.xml
 @@ -27,10 +27,10 @@
@@ -499,7 +499,7 @@ index d760352..054d840 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-modules_2.8.1</artifactId>
 +    <artifactId>lift-modules_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-amqp_2.8.1</artifactId>
 +  <artifactId>lift-amqp_2.8.0</artifactId>
@@ -507,7 +507,7 @@ index d760352..054d840 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-modules/lift-facebook/pom.xml framework/lift-modules/lift-facebook/pom.xml
-index bb5c657..f3e722a 100644
+index 1ec1664..96dd021 100644
 --- framework/lift-modules/lift-facebook/pom.xml
 +++ framework/lift-modules/lift-facebook/pom.xml
 @@ -27,10 +27,10 @@
@@ -516,7 +516,7 @@ index bb5c657..f3e722a 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-modules_2.8.1</artifactId>
 +    <artifactId>lift-modules_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-facebook_2.8.1</artifactId>
 +  <artifactId>lift-facebook_2.8.0</artifactId>
@@ -524,7 +524,7 @@ index bb5c657..f3e722a 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-modules/lift-imaging/pom.xml framework/lift-modules/lift-imaging/pom.xml
-index 2185220..8f477b5 100644
+index f1da0a4..15d513a 100644
 --- framework/lift-modules/lift-imaging/pom.xml
 +++ framework/lift-modules/lift-imaging/pom.xml
 @@ -27,10 +27,10 @@
@@ -533,7 +533,7 @@ index 2185220..8f477b5 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-modules_2.8.1</artifactId>
 +    <artifactId>lift-modules_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-imaging_2.8.1</artifactId>
 +  <artifactId>lift-imaging_2.8.0</artifactId>
@@ -541,7 +541,7 @@ index 2185220..8f477b5 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-modules/lift-jta/pom.xml framework/lift-modules/lift-jta/pom.xml
-index f30aae4..1da31bf 100644
+index 6201240..0a2e26f 100644
 --- framework/lift-modules/lift-jta/pom.xml
 +++ framework/lift-modules/lift-jta/pom.xml
 @@ -27,10 +27,10 @@
@@ -550,7 +550,7 @@ index f30aae4..1da31bf 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-modules_2.8.1</artifactId>
 +    <artifactId>lift-modules_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-jta_2.8.1</artifactId>
 +  <artifactId>lift-jta_2.8.0</artifactId>
@@ -558,7 +558,7 @@ index f30aae4..1da31bf 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-modules/lift-ldap/pom.xml framework/lift-modules/lift-ldap/pom.xml
-index 1c39361..9c3fc1f 100644
+index 1ce9544..56dd38a 100644
 --- framework/lift-modules/lift-ldap/pom.xml
 +++ framework/lift-modules/lift-ldap/pom.xml
 @@ -24,10 +24,10 @@
@@ -567,7 +567,7 @@ index 1c39361..9c3fc1f 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-modules_2.8.1</artifactId>
 +    <artifactId>lift-modules_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-ldap_2.8.1</artifactId>
 +  <artifactId>lift-ldap_2.8.0</artifactId>
@@ -575,7 +575,7 @@ index 1c39361..9c3fc1f 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-modules/lift-machine/pom.xml framework/lift-modules/lift-machine/pom.xml
-index 83549f2..c1d58b8 100644
+index 1ad0572..15f2f2e 100644
 --- framework/lift-modules/lift-machine/pom.xml
 +++ framework/lift-modules/lift-machine/pom.xml
 @@ -27,10 +27,10 @@
@@ -584,7 +584,7 @@ index 83549f2..c1d58b8 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-modules_2.8.1</artifactId>
 +    <artifactId>lift-modules_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-machine_2.8.1</artifactId>
 +  <artifactId>lift-machine_2.8.0</artifactId>
@@ -592,7 +592,7 @@ index 83549f2..c1d58b8 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-modules/lift-oauth-mapper/pom.xml framework/lift-modules/lift-oauth-mapper/pom.xml
-index 01b6eeb..23bd5ab 100644
+index 9b527de..a77c070 100644
 --- framework/lift-modules/lift-oauth-mapper/pom.xml
 +++ framework/lift-modules/lift-oauth-mapper/pom.xml
 @@ -27,10 +27,10 @@
@@ -601,7 +601,7 @@ index 01b6eeb..23bd5ab 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-modules_2.8.1</artifactId>
 +    <artifactId>lift-modules_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-oauth-mapper_2.8.1</artifactId>
 +  <artifactId>lift-oauth-mapper_2.8.0</artifactId>
@@ -609,7 +609,7 @@ index 01b6eeb..23bd5ab 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-modules/lift-oauth/pom.xml framework/lift-modules/lift-oauth/pom.xml
-index 9f96055..8e3edf9 100644
+index b248ee5..db57f00 100644
 --- framework/lift-modules/lift-oauth/pom.xml
 +++ framework/lift-modules/lift-oauth/pom.xml
 @@ -27,10 +27,10 @@
@@ -618,7 +618,7 @@ index 9f96055..8e3edf9 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-modules_2.8.1</artifactId>
 +    <artifactId>lift-modules_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-oauth_2.8.1</artifactId>
 +  <artifactId>lift-oauth_2.8.0</artifactId>
@@ -626,7 +626,7 @@ index 9f96055..8e3edf9 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-modules/lift-openid/pom.xml framework/lift-modules/lift-openid/pom.xml
-index 9f698c3..aad387f 100644
+index ef0842f..ed44fe1 100644
 --- framework/lift-modules/lift-openid/pom.xml
 +++ framework/lift-modules/lift-openid/pom.xml
 @@ -27,10 +27,10 @@
@@ -635,7 +635,7 @@ index 9f698c3..aad387f 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-modules_2.8.1</artifactId>
 +    <artifactId>lift-modules_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-openid_2.8.1</artifactId>
 +  <artifactId>lift-openid_2.8.0</artifactId>
@@ -643,7 +643,7 @@ index 9f698c3..aad387f 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-modules/lift-osgi/pom.xml framework/lift-modules/lift-osgi/pom.xml
-index 4a43d13..dd46ffd 100644
+index 4b758de..ad5d50c 100644
 --- framework/lift-modules/lift-osgi/pom.xml
 +++ framework/lift-modules/lift-osgi/pom.xml
 @@ -27,10 +27,10 @@
@@ -652,7 +652,7 @@ index 4a43d13..dd46ffd 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-modules_2.8.1</artifactId>
 +    <artifactId>lift-modules_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-osgi_2.8.1</artifactId>
 +  <artifactId>lift-osgi_2.8.0</artifactId>
@@ -660,7 +660,7 @@ index 4a43d13..dd46ffd 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-modules/lift-paypal/pom.xml framework/lift-modules/lift-paypal/pom.xml
-index ebec8c9..d836940 100644
+index 8c92f15..c2bf978 100644
 --- framework/lift-modules/lift-paypal/pom.xml
 +++ framework/lift-modules/lift-paypal/pom.xml
 @@ -27,10 +27,10 @@
@@ -669,7 +669,7 @@ index ebec8c9..d836940 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-modules_2.8.1</artifactId>
 +    <artifactId>lift-modules_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-paypal_2.8.1</artifactId>
 +  <artifactId>lift-paypal_2.8.0</artifactId>
@@ -677,7 +677,7 @@ index ebec8c9..d836940 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-modules/lift-scalate/pom.xml framework/lift-modules/lift-scalate/pom.xml
-index 7183e95..89e6a36 100644
+index 9c19880..f6967ee 100644
 --- framework/lift-modules/lift-scalate/pom.xml
 +++ framework/lift-modules/lift-scalate/pom.xml
 @@ -27,10 +27,10 @@
@@ -686,7 +686,7 @@ index 7183e95..89e6a36 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-modules_2.8.1</artifactId>
 +    <artifactId>lift-modules_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-scalate_2.8.1</artifactId>
 +  <artifactId>lift-scalate_2.8.0</artifactId>
@@ -694,7 +694,7 @@ index 7183e95..89e6a36 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-modules/lift-testkit/pom.xml framework/lift-modules/lift-testkit/pom.xml
-index fc3761d..7cf8222 100644
+index 2faf138..68a98a5 100644
 --- framework/lift-modules/lift-testkit/pom.xml
 +++ framework/lift-modules/lift-testkit/pom.xml
 @@ -27,10 +27,10 @@
@@ -703,7 +703,7 @@ index fc3761d..7cf8222 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-modules_2.8.1</artifactId>
 +    <artifactId>lift-modules_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-testkit_2.8.1</artifactId>
 +  <artifactId>lift-testkit_2.8.0</artifactId>
@@ -711,7 +711,7 @@ index fc3761d..7cf8222 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-modules/lift-textile/pom.xml framework/lift-modules/lift-textile/pom.xml
-index 2214327..8d461b8 100644
+index ace7772..ba91659 100644
 --- framework/lift-modules/lift-textile/pom.xml
 +++ framework/lift-modules/lift-textile/pom.xml
 @@ -27,10 +27,10 @@
@@ -720,7 +720,7 @@ index 2214327..8d461b8 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-modules_2.8.1</artifactId>
 +    <artifactId>lift-modules_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-textile_2.8.1</artifactId>
 +  <artifactId>lift-textile_2.8.0</artifactId>
@@ -728,7 +728,7 @@ index 2214327..8d461b8 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-modules/lift-widgets/pom.xml framework/lift-modules/lift-widgets/pom.xml
-index 85d070d..dbee645 100644
+index 3143976..68f2e71 100644
 --- framework/lift-modules/lift-widgets/pom.xml
 +++ framework/lift-modules/lift-widgets/pom.xml
 @@ -27,10 +27,10 @@
@@ -737,7 +737,7 @@ index 85d070d..dbee645 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-modules_2.8.1</artifactId>
 +    <artifactId>lift-modules_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-widgets_2.8.1</artifactId>
 +  <artifactId>lift-widgets_2.8.0</artifactId>
@@ -745,7 +745,7 @@ index 85d070d..dbee645 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-modules/lift-wiring/pom.xml framework/lift-modules/lift-wiring/pom.xml
-index dcc2e3b..8c70320 100644
+index 0552cb1..9208657 100644
 --- framework/lift-modules/lift-wiring/pom.xml
 +++ framework/lift-modules/lift-wiring/pom.xml
 @@ -27,10 +27,10 @@
@@ -754,7 +754,7 @@ index dcc2e3b..8c70320 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-modules_2.8.1</artifactId>
 +    <artifactId>lift-modules_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-wiring_2.8.1</artifactId>
 +  <artifactId>lift-wiring_2.8.0</artifactId>
@@ -762,7 +762,7 @@ index dcc2e3b..8c70320 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-modules/lift-wizard/pom.xml framework/lift-modules/lift-wizard/pom.xml
-index b701fa4..0a0a124 100644
+index 0d44fac..07d784e 100644
 --- framework/lift-modules/lift-wizard/pom.xml
 +++ framework/lift-modules/lift-wizard/pom.xml
 @@ -27,10 +27,10 @@
@@ -771,7 +771,7 @@ index b701fa4..0a0a124 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-modules_2.8.1</artifactId>
 +    <artifactId>lift-modules_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-wizard_2.8.1</artifactId>
 +  <artifactId>lift-wizard_2.8.0</artifactId>
@@ -779,7 +779,7 @@ index b701fa4..0a0a124 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-modules/lift-xmpp/pom.xml framework/lift-modules/lift-xmpp/pom.xml
-index b810e39..f710759 100644
+index 9d2a000..2d25c70 100644
 --- framework/lift-modules/lift-xmpp/pom.xml
 +++ framework/lift-modules/lift-xmpp/pom.xml
 @@ -27,10 +27,10 @@
@@ -788,7 +788,7 @@ index b810e39..f710759 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-modules_2.8.1</artifactId>
 +    <artifactId>lift-modules_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-xmpp_2.8.1</artifactId>
 +  <artifactId>lift-xmpp_2.8.0</artifactId>
@@ -796,7 +796,7 @@ index b810e39..f710759 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-modules/pom.xml framework/lift-modules/pom.xml
-index f6f766e..b4753b1 100644
+index e08e4be..6655187 100644
 --- framework/lift-modules/pom.xml
 +++ framework/lift-modules/pom.xml
 @@ -31,10 +31,10 @@
@@ -805,7 +805,7 @@ index f6f766e..b4753b1 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>framework_2.8.1</artifactId>
 +    <artifactId>framework_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-modules_2.8.1</artifactId>
 +  <artifactId>lift-modules_2.8.0</artifactId>
@@ -813,7 +813,7 @@ index f6f766e..b4753b1 100644
  
    <!--
 diff --git framework/lift-persistence/lift-couchdb/pom.xml framework/lift-persistence/lift-couchdb/pom.xml
-index 8e7ef08..ae1ea1f 100644
+index 56a28be..9799d44 100644
 --- framework/lift-persistence/lift-couchdb/pom.xml
 +++ framework/lift-persistence/lift-couchdb/pom.xml
 @@ -27,10 +27,10 @@
@@ -822,7 +822,7 @@ index 8e7ef08..ae1ea1f 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-persistence_2.8.1</artifactId>
 +    <artifactId>lift-persistence_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-couchdb_2.8.1</artifactId>
 +  <artifactId>lift-couchdb_2.8.0</artifactId>
@@ -830,7 +830,7 @@ index 8e7ef08..ae1ea1f 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-persistence/lift-jpa/pom.xml framework/lift-persistence/lift-jpa/pom.xml
-index 45120a3..4f377a9 100644
+index bc85471..e827e43 100644
 --- framework/lift-persistence/lift-jpa/pom.xml
 +++ framework/lift-persistence/lift-jpa/pom.xml
 @@ -27,10 +27,10 @@
@@ -839,7 +839,7 @@ index 45120a3..4f377a9 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-persistence_2.8.1</artifactId>
 +    <artifactId>lift-persistence_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-jpa_2.8.1</artifactId>
 +  <artifactId>lift-jpa_2.8.0</artifactId>
@@ -847,7 +847,7 @@ index 45120a3..4f377a9 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-persistence/lift-mapper/pom.xml framework/lift-persistence/lift-mapper/pom.xml
-index 4ae9646..1d0dfaf 100644
+index 804a236..a7ee435 100644
 --- framework/lift-persistence/lift-mapper/pom.xml
 +++ framework/lift-persistence/lift-mapper/pom.xml
 @@ -27,10 +27,10 @@
@@ -856,7 +856,7 @@ index 4ae9646..1d0dfaf 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-persistence_2.8.1</artifactId>
 +    <artifactId>lift-persistence_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-mapper_2.8.1</artifactId>
 +  <artifactId>lift-mapper_2.8.0</artifactId>
@@ -864,7 +864,7 @@ index 4ae9646..1d0dfaf 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-persistence/lift-mongodb-record/pom.xml framework/lift-persistence/lift-mongodb-record/pom.xml
-index fca6115..bf74b60 100644
+index 0a4106b..b08aa5e 100644
 --- framework/lift-persistence/lift-mongodb-record/pom.xml
 +++ framework/lift-persistence/lift-mongodb-record/pom.xml
 @@ -27,10 +27,10 @@
@@ -873,7 +873,7 @@ index fca6115..bf74b60 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-persistence_2.8.1</artifactId>
 +    <artifactId>lift-persistence_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-mongodb-record_2.8.1</artifactId>
 +  <artifactId>lift-mongodb-record_2.8.0</artifactId>
@@ -881,7 +881,7 @@ index fca6115..bf74b60 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-persistence/lift-mongodb/pom.xml framework/lift-persistence/lift-mongodb/pom.xml
-index b364745..07c47ec 100644
+index 0d99427..362788c 100644
 --- framework/lift-persistence/lift-mongodb/pom.xml
 +++ framework/lift-persistence/lift-mongodb/pom.xml
 @@ -27,10 +27,10 @@
@@ -890,7 +890,7 @@ index b364745..07c47ec 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-persistence_2.8.1</artifactId>
 +    <artifactId>lift-persistence_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-mongodb_2.8.1</artifactId>
 +  <artifactId>lift-mongodb_2.8.0</artifactId>
@@ -898,7 +898,7 @@ index b364745..07c47ec 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-persistence/lift-proto/pom.xml framework/lift-persistence/lift-proto/pom.xml
-index 282ee17..f9907c1 100644
+index 50550be..5aeb803 100644
 --- framework/lift-persistence/lift-proto/pom.xml
 +++ framework/lift-persistence/lift-proto/pom.xml
 @@ -27,10 +27,10 @@
@@ -907,7 +907,7 @@ index 282ee17..f9907c1 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-persistence_2.8.1</artifactId>
 +    <artifactId>lift-persistence_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-proto_2.8.1</artifactId>
 +  <artifactId>lift-proto_2.8.0</artifactId>
@@ -915,7 +915,7 @@ index 282ee17..f9907c1 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-persistence/lift-record/pom.xml framework/lift-persistence/lift-record/pom.xml
-index c47bad5..f71f536 100644
+index 84a4b0b..7ab9bc3 100644
 --- framework/lift-persistence/lift-record/pom.xml
 +++ framework/lift-persistence/lift-record/pom.xml
 @@ -27,10 +27,10 @@
@@ -924,7 +924,7 @@ index c47bad5..f71f536 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-persistence_2.8.1</artifactId>
 +    <artifactId>lift-persistence_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-record_2.8.1</artifactId>
 +  <artifactId>lift-record_2.8.0</artifactId>
@@ -932,7 +932,7 @@ index c47bad5..f71f536 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-persistence/lift-squeryl-record/pom.xml framework/lift-persistence/lift-squeryl-record/pom.xml
-index bcb4193..9bc796c 100644
+index 56bdd4f..8320d83 100644
 --- framework/lift-persistence/lift-squeryl-record/pom.xml
 +++ framework/lift-persistence/lift-squeryl-record/pom.xml
 @@ -27,10 +27,10 @@
@@ -941,15 +941,32 @@ index bcb4193..9bc796c 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-persistence_2.8.1</artifactId>
 +    <artifactId>lift-persistence_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-squeryl-record_2.8.1</artifactId>
 +  <artifactId>lift-squeryl-record_2.8.0</artifactId>
  
    <!--
      ~ More Project Information
+@@ -62,7 +62,7 @@
+       <groupId>cglib</groupId>
+       <artifactId>cglib-nodep</artifactId>
+     </dependency>
+-    
++
+     <!-- Test dependencies: -->
+     <dependency>
+       <groupId>org.scala-tools.testing</groupId>
+@@ -84,6 +84,6 @@
+       <artifactId>h2</artifactId>
+       <scope>test</scope>
+     </dependency>
+-    
++
+   </dependencies>
+ </project>
 diff --git framework/lift-persistence/pom.xml framework/lift-persistence/pom.xml
-index d494dfd..c5f52be 100644
+index 2300075..25d1c41 100644
 --- framework/lift-persistence/pom.xml
 +++ framework/lift-persistence/pom.xml
 @@ -31,10 +31,10 @@
@@ -958,7 +975,7 @@ index d494dfd..c5f52be 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>framework_2.8.1</artifactId>
 +    <artifactId>framework_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
    </parent>
 -  <artifactId>lift-persistence_2.8.1</artifactId>
 +  <artifactId>lift-persistence_2.8.0</artifactId>
@@ -966,7 +983,7 @@ index d494dfd..c5f52be 100644
  
    <!--
 diff --git framework/pom.xml framework/pom.xml
-index 8c7676d..ff6403b 100644
+index bdcf828..98e1e52 100644
 --- framework/pom.xml
 +++ framework/pom.xml
 @@ -35,11 +35,11 @@
@@ -975,7 +992,7 @@ index 8c7676d..ff6403b 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-parent_2.8.1</artifactId>
 +    <artifactId>lift-parent_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
      <relativePath>../resources/lift-parent/pom.xml</relativePath>
    </parent>
 -  <artifactId>framework_2.8.1</artifactId>
@@ -984,7 +1001,7 @@ index 8c7676d..ff6403b 100644
  
    <!--
 diff --git pom.xml pom.xml
-index 5a6f0d4..87e800f 100644
+index d4d49fa..eaf7645 100644
 --- pom.xml
 +++ pom.xml
 @@ -32,7 +32,7 @@
@@ -993,11 +1010,11 @@ index 5a6f0d4..87e800f 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-parent_2.8.1</artifactId>
 +    <artifactId>lift-parent_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
      <relativePath>resources/lift-parent/pom.xml</relativePath>
    </parent>
 diff --git resources/lift-parent/pom.xml resources/lift-parent/pom.xml
-index 8d93a55..eca15af 100644
+index 929909d..fc17a92 100644
 --- resources/lift-parent/pom.xml
 +++ resources/lift-parent/pom.xml
 @@ -37,7 +37,7 @@
@@ -1006,7 +1023,7 @@ index 8d93a55..eca15af 100644
    <groupId>net.liftweb</groupId>
 -  <artifactId>lift-parent_2.8.1</artifactId>
 +  <artifactId>lift-parent_2.8.0</artifactId>
-   <version>2.2-SNAPSHOT</version>
+   <version>2.3-SNAPSHOT</version>
    <packaging>pom</packaging>
  
 @@ -291,8 +291,8 @@
@@ -1021,7 +1038,7 @@ index 8d93a55..eca15af 100644
      <!-- Note: logback.version must be compatible with slf4j.version -->
      <logback.version>0.9.26</logback.version>
 diff --git resources/lift-site-skin/pom.xml resources/lift-site-skin/pom.xml
-index d73c25c..12d7c94 100644
+index 4d73901..58b0aca 100644
 --- resources/lift-site-skin/pom.xml
 +++ resources/lift-site-skin/pom.xml
 @@ -27,11 +27,11 @@
@@ -1030,7 +1047,7 @@ index d73c25c..12d7c94 100644
      <groupId>net.liftweb</groupId>
 -    <artifactId>lift-parent_2.8.1</artifactId>
 +    <artifactId>lift-parent_2.8.0</artifactId>
-     <version>2.2-SNAPSHOT</version>
+     <version>2.3-SNAPSHOT</version>
      <relativePath>../lift-parent/pom.xml</relativePath>
    </parent>
 -  <artifactId>lift-site-skin_2.8.1</artifactId>

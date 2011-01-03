@@ -31,6 +31,103 @@ import sitemap._
 import _root_.scala._
 
 
+trait UserAgentCalculator {
+  lazy val ieVersion: Box[Int] = {
+    val re = """MSIE ([0-9]+)""".r
+    for {
+      ua <- userAgent
+      m = re.pattern.matcher(ua)
+      ver <- if (m.find) Helpers.asInt(m.group(1)) else Empty
+    } yield ver
+  }
+
+  lazy val isIE6: Boolean = ieVersion.map(_ == 6) openOr false
+  lazy val isIE7: Boolean = ieVersion.map(_ == 7) openOr false
+  lazy val isIE8: Boolean = ieVersion.map(_ == 8) openOr false
+  lazy val isIE9: Boolean = ieVersion.map(_ == 9) openOr false
+  lazy val isIE = ieVersion.map(_ >= 6) openOr false
+
+  lazy val safariVersion: Box[Int] = {
+    val re = """Version.([0-9]+)[.0-9]+ ([^S])*Safari\/""".r
+    for {
+      ua <- userAgent
+      m = re.pattern.matcher(ua)
+      ver <- if (m.find) Helpers.asInt(m.group(1)) else Empty
+    } yield ver
+  }
+
+
+
+  def isSafari2: Boolean = false
+
+  lazy val isSafari3: Boolean = safariVersion.map(_ == 3) openOr false
+  lazy val isSafari4: Boolean = safariVersion.map(_ == 4) openOr false
+  lazy val isSafari5: Boolean = safariVersion.map(_ == 5) openOr false
+  
+  def isSafari3_+ = safariVersion.map(_ >= 3) openOr false
+  def isSafari = safariVersion.isDefined
+
+  /**
+   * Is the Req coming from an iPhone
+   */
+  lazy val isIPhone = isSafari && (userAgent.map(s => s.indexOf("(iPhone") >= 0) openOr false)
+
+  /**
+   * Is the Req coming from an iPad
+   */
+  lazy val isIPad = isSafari && (userAgent.map(s => s.indexOf("(iPad") >= 0) openOr false)
+
+  lazy val firefoxVersion: Box[Double] = {
+    val re = """Firefox.([1-9][0-9]*\.[0-9])""".r   
+
+    for {
+      ua <- userAgent
+      m = re.pattern.matcher(ua)
+      ver <- if (m.find) Helpers.tryo(m.group(1).toDouble) else Empty
+    } yield ver
+  }
+
+  lazy val isFirefox2: Boolean = firefoxVersion.map(v => v >= 2d && v < 3d) openOr false
+  lazy val isFirefox3: Boolean = firefoxVersion.map(v => v >= 3d && v < 3.5d) openOr false
+  lazy val isFirefox35: Boolean = firefoxVersion.map(v => v >= 3.5d && v < 3.6d) openOr false
+  lazy val isFirefox36: Boolean = firefoxVersion.map(v => v >= 3.6d && v < 4d) openOr false
+  lazy val isFirefox40: Boolean = firefoxVersion.map(v => v >= 4d) openOr false
+
+  def isFirefox35_+ : Boolean = firefoxVersion.map(_ >= 3.5d) openOr false
+
+  def isFirefox = firefoxVersion.isDefined
+
+
+  lazy val chromeVersion: Box[Double] = {
+    val re = """Chrome.([1-9][0-9]*\.[0-9])""".r   
+
+    for {
+      ua <- userAgent
+      m = re.pattern.matcher(ua)
+      ver <- if (m.find) Helpers.tryo(m.group(1).toDouble) else Empty
+    } yield ver
+  }
+
+  lazy val isChrome2 = chromeVersion.map(v => v >= 2d && v < 3d) openOr false
+  lazy val isChrome3 = chromeVersion.map(v => v >= 3d && v < 4d) openOr false
+  lazy val isChrome4 = chromeVersion.map(v => v >= 4d && v < 5d) openOr false
+  lazy val isChrome5 = chromeVersion.map(v => v >= 5d && v < 6d) openOr false
+  lazy val isChrome6 = chromeVersion.map(v => v >= 6d && v < 7d) openOr false
+
+  def isChrome3_+ = chromeVersion.map(_ >= 3d) openOr false
+
+  def isChrome = chromeVersion.isDefined
+
+  lazy val isOpera9: Boolean = (userAgent.map(s => s.indexOf("Opera/9.") >= 0) openOr false)
+
+  def isOpera = isOpera9
+
+  /**
+   * What's the user agent?
+   */
+  def userAgent: Box[String]
+}
+
 @serializable
 sealed trait ParamHolder {
   def name: String
@@ -150,8 +247,6 @@ object Req {
       case Full(resp) => processRewrite(resp.path, params ++ resp.params)
     }
 
-
-
     // val (uri, path, localSingleParams) = processRewrite(tmpUri, tmpPath, TreeMap.empty)
     val rewritten = processRewrite(tmpPath, Map.empty)
 
@@ -164,11 +259,11 @@ object Req {
     val contentType = request.contentType
 
     //    val (paramNames: List[String], params: Map[String, List[String]], files: List[FileParamHolder], body: Box[Array[Byte]]) =
-    val paramCalculator = () => {
 
-      // calculate the query parameters
-      lazy val queryStringParam:  (List[String], Map[String, List[String]]) = {
-        val params: List[(String, String)] =
+          
+    // calculate the query parameters
+    lazy val queryStringParam:  (List[String], Map[String, List[String]]) = {
+      val params: List[(String, String)] =
         for {
           queryString <- request.queryString.toList
           nameVal <- queryString.split("&").toList.map(_.trim).filter(_.length > 0)
@@ -177,42 +272,71 @@ object Req {
             case n :: v :: _ => Full((urlDecode(n), urlDecode(v)))
             case n :: _ => Full((urlDecode(n), ""))
           }} yield (name, value)
-
-        val names: List[String] = params.map(_._1).removeDuplicates
-        val nvp: Map[String, List[String]] = params.foldLeft(Map[String, List[String]]()) {
-          case (map, (name, value)) => map + (name -> (map.getOrElse(name, Nil) ::: List(value)))
-        }
-
-        (names, nvp)
+            
+            val names: List[String] = params.map(_._1).removeDuplicates
+      val nvp: Map[String, List[String]] = params.foldLeft(Map[String, List[String]]()) {
+        case (map, (name, value)) => map + (name -> (map.getOrElse(name, Nil) ::: List(value)))
       }
+      
+      (names, nvp)
+    }
 
+    // make this a thunk so it only gets calculated once
+    lazy val paramCalcInfo: ParamCalcInfo = {
+      // post/put of XML or JSON... eagerly read the stream
       if ((reqType.post_? ||
            reqType.put_?) && contentType.dmap(false){
 	_.toLowerCase match {
 	  case x => 
 	    x.startsWith("text/xml") || 
+	    x.startsWith("application/xml") || 
 	  x.startsWith("text/json") ||
 	  x.startsWith("application/json")
 	}}) {
-        ParamCalcInfo(queryStringParam._1, queryStringParam._2 ++ localParams, Nil, tryo(readWholeStream(request.inputStream)))
+        ParamCalcInfo(queryStringParam._1, 
+                      queryStringParam._2 ++ localParams, 
+                      Nil, 
+                      tryo(readWholeStream(request.inputStream)))
+        // it's multipart
       } else if (request multipartContent_?) {
         val allInfo = request extractFiles
+        
+        val normal: List[NormalParamHolder] = 
+          allInfo.flatMap {
+            case v: NormalParamHolder => List(v)
+            case _ => Nil}
 
-        val normal: List[NormalParamHolder] = allInfo.flatMap {case v: NormalParamHolder => List(v) case _ => Nil}
-        val files: List[FileParamHolder] = allInfo.flatMap {case v: FileParamHolder => List(v) case _ => Nil}
-
+        val files: List[FileParamHolder] = allInfo.flatMap {
+          case v: FileParamHolder => List(v)
+          case _ => Nil}
+        
         val params = normal.foldLeft(eMap)((a, b) =>
           a + (b.name -> (a.getOrElse(b.name, Nil) ::: List(b.value))))
-
-        ParamCalcInfo((queryStringParam._1 ::: normal.map(_.name)).removeDuplicates, queryStringParam._2 ++ localParams ++ params, files, Empty)
+        
+        ParamCalcInfo((queryStringParam._1 ::: 
+                       normal.map(_.name)).removeDuplicates, 
+                      queryStringParam._2 ++ localParams ++
+                      params, files, Empty)
+        // it's a GET
       } else if (reqType.get_?) {
-        ParamCalcInfo(queryStringParam._1, queryStringParam._2 ++ localParams, Nil, Empty)
-      } else if (contentType.dmap(false)(_.toLowerCase.startsWith("application/x-www-form-urlencoded"))) {
-        val params = localParams ++ (request.params.sort {(s1, s2) => s1.name < s2.name}).map(n => (n.name, n.values))
+        ParamCalcInfo(queryStringParam._1,
+                      queryStringParam._2 ++ localParams, Nil, Empty)
+      } else if (contentType.dmap(false)(_.toLowerCase.
+                                         startsWith("application/x-www-form-urlencoded"))) {
+        val params = localParams ++ (request.params.sort
+                                     {(s1, s2) => s1.name < s2.name}).
+                                           map(n => (n.name, n.values))
         ParamCalcInfo(request paramNames, params, Nil, Empty)
       } else {
-        ParamCalcInfo(queryStringParam._1, queryStringParam._2 ++ localParams, Nil, tryo(readWholeStream(request inputStream)))
+        ParamCalcInfo(queryStringParam._1, 
+                      queryStringParam._2 ++ localParams, 
+                      Nil, tryo(readWholeStream(request inputStream)))
       }
+    }
+
+
+    val paramCalculator: () => ParamCalcInfo = () => {
+      paramCalcInfo
     }
 
     val stateless = NamedPF.applyBox(rewritten.path.wholePath, statelessTest)
@@ -418,7 +542,7 @@ class Req(val path: ParsePath,
           val nanoEnd: Long,
           _stateless_? : Boolean,
           private[http] val paramCalculator: () => ParamCalcInfo,
-          private[http] val addlParams: Map[String, String]) extends HasParams
+          private[http] val addlParams: Map[String, String]) extends HasParams with UserAgentCalculator
 {
   override def toString = "Req(" + paramNames + ", " + params + ", " + path +
   ", " + contextPath + ", " + requestType + ", " + contentType + ")"
@@ -525,7 +649,10 @@ class Req(val path: ParsePath,
   lazy val ParamCalcInfo(paramNames: List[String],
             _params: Map[String, List[String]],
             uploadedFiles: List[FileParamHolder],
-            body: Box[Array[Byte]]) = paramCalculator()
+            body: Box[Array[Byte]]) = {
+    val ret = paramCalculator()
+    ret
+  }
 
   lazy val params: Map[String, List[String]] = addlParams.foldLeft(_params){
     case (map, (key, value)) => map + (key -> (value :: map.getOrElse(key, Nil)))
@@ -725,87 +852,6 @@ class Req(val path: ParsePath,
        uah <- request.header("User-Agent"))
   yield uah
 
-  lazy val ieVersion: Box[Int] = {
-    val re = """MSIE ([0-9]+)""".r
-    for {
-      ua <- userAgent
-      m = re.pattern.matcher(ua)
-      ver <- if (m.find) Helpers.asInt(m.group(1)) else Empty
-    } yield ver
-  }
-
-  lazy val isIE6: Boolean = ieVersion.map(_ == 6) openOr false
-  lazy val isIE7: Boolean = ieVersion.map(_ == 7) openOr false
-  lazy val isIE8: Boolean = ieVersion.map(_ == 8) openOr false
-  lazy val isIE9: Boolean = ieVersion.map(_ == 9) openOr false
-  lazy val isIE = ieVersion.map(_ >= 6) openOr false
-
-  lazy val safariVersion: Box[Int] = {
-    val re = """Version.([0-9]+)[.0-9]+ Safari\/""".r
-    for {
-      ua <- userAgent
-      m = re.pattern.matcher(ua)
-      ver <- if (m.find) Helpers.asInt(m.group(1)) else Empty
-    } yield ver
-  }
-
-
-
-  def isSafari2: Boolean = false
-
-  lazy val isSafari3: Boolean = safariVersion.map(_ == 3) openOr false
-  lazy val isSafari4: Boolean = safariVersion.map(_ == 4) openOr false
-  lazy val isSafari5: Boolean = safariVersion.map(_ == 5) openOr false
-  
-  def isSafari3_+ = safariVersion.map(_ >= 3) openOr false
-  def isSafari = safariVersion.isDefined
-
-  lazy val isIPhone = isSafari && (userAgent.map(s => s.indexOf("(iPhone;") >= 0) openOr false)
-
-  lazy val firefoxVersion: Box[Double] = {
-    val re = """Firefox.([1-9][0-9]*\.[0-9])""".r   
-
-    for {
-      ua <- userAgent
-      m = re.pattern.matcher(ua)
-      ver <- if (m.find) Helpers.tryo(m.group(1).toDouble) else Empty
-    } yield ver
-  }
-
-  lazy val isFirefox2: Boolean = firefoxVersion.map(v => v >= 2d && v < 3d) openOr false
-  lazy val isFirefox3: Boolean = firefoxVersion.map(v => v >= 3d && v < 3.5d) openOr false
-  lazy val isFirefox35: Boolean = firefoxVersion.map(v => v >= 3.5d && v < 3.6d) openOr false
-  lazy val isFirefox36: Boolean = firefoxVersion.map(v => v >= 3.6d && v < 4d) openOr false
-  lazy val isFirefox40: Boolean = firefoxVersion.map(v => v >= 4d) openOr false
-
-  def isFirefox35_+ : Boolean = firefoxVersion.map(_ >= 3.5d) openOr false
-
-  def isFirefox = firefoxVersion.isDefined
-
-
-  lazy val chromeVersion: Box[Double] = {
-    val re = """Chrome.([1-9][0-9]*\.[0-9])""".r   
-
-    for {
-      ua <- userAgent
-      m = re.pattern.matcher(ua)
-      ver <- if (m.find) Helpers.tryo(m.group(1).toDouble) else Empty
-    } yield ver
-  }
-
-  lazy val isChrome2 = chromeVersion.map(v => v >= 2d && v < 3d) openOr false
-  lazy val isChrome3 = chromeVersion.map(v => v >= 3d && v < 4d) openOr false
-  lazy val isChrome4 = chromeVersion.map(v => v >= 4d && v < 5d) openOr false
-  lazy val isChrome5 = chromeVersion.map(v => v >= 5d && v < 6d) openOr false
-  lazy val isChrome6 = chromeVersion.map(v => v >= 6d && v < 7d) openOr false
-
-  def isChrome3_+ = chromeVersion.map(_ >= 3d) openOr false
-
-  def isChrome = chromeVersion.isDefined
-
-  lazy val isOpera9: Boolean = (userAgent.map(s => s.indexOf("Opera/9.") >= 0) openOr false)
-
-  def isOpera = isOpera9
 
   /**
    * the accept header

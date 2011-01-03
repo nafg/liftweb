@@ -17,12 +17,11 @@
 package net.liftweb {
 package json {
 
-import _root_.org.specs.Specification
-import _root_.org.specs.runner.{Runner, JUnit}
+import org.specs.Specification
+import org.specs.runner.{Runner, JUnit}
 
 class XmlBugsTest extends Runner(XmlBugs) with JUnit
 object XmlBugs extends Specification {
-  import JsonAST._
   import Xml._
   import scala.xml.{Group, Text}
 

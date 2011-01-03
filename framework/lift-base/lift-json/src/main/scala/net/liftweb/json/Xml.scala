@@ -20,7 +20,6 @@ package json {
 /** Functions to convert between JSON and XML.
  */
 object Xml {
-  import JsonAST._
   import scala.xml._
 
   /** Convert given XML to JSON.
@@ -92,7 +91,7 @@ object Xml {
       !descendant(node).find(_.isInstanceOf[Elem]).isDefined
     }
 
-    def array_?(nodeNames: Seq[String]) = nodeNames.size != 1 && nodeNames.toList.removeDuplicates.size == 1
+    def array_?(nodeNames: Seq[String]) = nodeNames.size != 1 && nodeNames.toList.distinct.size == 1
     def directChildren(n: Node): NodeSeq = n.child.filter(c => c.isInstanceOf[Elem])
     def nameOf(n: Node) = (if (n.prefix ne null) n.prefix + ":" else "") + n.label
     def buildAttrs(n: Node) = n.attributes.map((a: MetaData) => (a.key, XValue(a.value.text))).toList
@@ -144,7 +143,7 @@ object Xml {
     
     buildNodes(xml) match {
       case List(x @ XLeaf(_, _ :: _)) => toJValue(x)
-      case List(x) => JObject(JField(nameOf(xml.first), toJValue(x)) :: Nil)
+      case List(x) => JObject(JField(nameOf(xml.head), toJValue(x)) :: Nil)
       case x => JArray(x.map(toJValue))
     }
   }

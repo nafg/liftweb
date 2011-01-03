@@ -18,7 +18,6 @@ package net.liftweb {
 package json {
 
 import java.util.{Date, TimeZone}
-import JsonAST.{JObject, JValue}
 
 /** Formats to use when converting JSON.
  * Formats are usually configured by using an implicit parameter:
@@ -119,9 +118,9 @@ trait TypeHints {
     /**
      * Chooses most specific class.
      */
-    def hintFor(clazz: Class[_]): String = components.filter(_.containsHint_?(clazz)).
-        map(th => (th.hintFor(clazz), th.classFor(th.hintFor(clazz)).getOrElse(error("hintFor/classFor not invertible for " + th)))).
-          sort((x, y) => delta(x._2, clazz) - delta(y._2, clazz) < 0).head._1
+    def hintFor(clazz: Class[_]): String = components.filter(_.containsHint_?(clazz))
+      .map(th => (th.hintFor(clazz), th.classFor(th.hintFor(clazz)).getOrElse(error("hintFor/classFor not invertible for " + th))))
+      .sort((x, y) => delta(x._2, clazz) - delta(y._2, clazz) < 0).head._1
 
     def classFor(hint: String): Option[Class[_]] = hints find (hintFor(_) == hint)
 

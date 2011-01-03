@@ -17,12 +17,11 @@
 package net.liftweb {
 package json {
 
-import _root_.org.specs.Specification
-import _root_.org.specs.runner.{Runner, JUnit}
+import org.specs.Specification
+import org.specs.runner.{Runner, JUnit}
 
 class LottoExampleTest extends Runner(LottoExample) with JUnit
 object LottoExample extends Specification {
-  import JsonAST._
   import JsonDSL._
 
   implicit val formats = DefaultFormats

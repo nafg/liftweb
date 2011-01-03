@@ -18,14 +18,11 @@ package net.liftweb {
 package json {
 
 import java.util.Date
-import _root_.org.specs.Specification
-import _root_.org.specs.runner.{Runner, JUnit}
+import org.specs.Specification
+import org.specs.runner.{Runner, JUnit}
 
 class ExtractionExampleTest extends Runner(ExtractionExamples) with JUnit
 object ExtractionExamples extends Specification {
-  import JsonAST._
-  import JsonParser._
-
   implicit val formats = DefaultFormats
 
   "Extraction example" in {
@@ -154,12 +151,15 @@ object ExtractionExamples extends Specification {
     Extraction.unflatten(Extraction.flatten(Extraction.decompose(s))).extract[SetWrapper] mustEqual s
   }
 
-  /* Does not work yet.
   "List extraction example" in {
-    val json = parse(testJson)
-    (json \ "children").extract[List[Name]] mustEqual List("Mary", "Mazy")
+    val json = parse(testJson) \ "children"
+    json.extract[List[Name]] mustEqual List(Name("Mary"), Name("Mazy"))
   }
-  */
+
+  "Map extraction example" in {
+    val json = parse(testJson) \ "address"
+    json.extract[Map[String, String]] mustEqual Map("street" -> "Bulevard", "city" -> "Helsinki")
+  }
 
   "Extraction and decomposition are symmetric" in {
     val person = parse(testJson).extract[Person]
@@ -189,6 +189,11 @@ object ExtractionExamples extends Specification {
 
     parse("""{"foo":2,"age":12,"size":"XS"}""").extract[MultipleConstructors] mustEqual
       MultipleConstructors("unknown", 12, Some("XS"))
+  }
+
+  "Partial JSON extraction" in {
+    parse(stringField).extract[ClassWithJSON] mustEqual ClassWithJSON("one", JString("msg"))
+    parse(objField).extract[ClassWithJSON] mustEqual ClassWithJSON("one", JObject(List(JField("yes", JString("woo")))))
   }
 
   val testJson = 
@@ -263,6 +268,24 @@ object ExtractionExamples extends Specification {
 }
 """
 
+  val stringField =
+"""
+{
+  "name": "one",
+  "message": "msg"
+}
+"""
+
+  val objField =
+"""
+{
+  "name": "one",
+  "message": {
+    "yes": "woo"
+  }
+}
+"""
+
   def date(s: String) = DefaultFormats.dateFormat.parse(s).get
 }
 
@@ -294,6 +317,8 @@ case class MultipleConstructors(name: String, age: Int, size: Option[String]) {
   def this(name: String, birthYear: Int) = this(name, 2010 - birthYear, None)
   def this(size: Option[String], age: Int) = this("unknown", age, size)
 }
+
+case class ClassWithJSON(name: String, message: JValue)
 
 }
 }
