@@ -297,6 +297,7 @@
     <!-- Note: logback.version must be compatible with slf4j.version -->
     <logback.version>0.9.26</logback.version>
     <atomikos.version>3.2.3</atomikos.version>
+    <mongodb.javaDriver.version>2.4</mongodb.javaDriver.version>
   </properties>
 
   <!--
