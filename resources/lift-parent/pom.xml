@@ -716,16 +716,25 @@
           <version>2.8</version>
           <configuration>
             <downloadSources>true</downloadSources>
-            <additionalProjectnatures>
-              <projectnature>ch.epfl.lamp.sdt.core.scalanature</projectnature>
-            </additionalProjectnatures>
-            <additionalBuildcommands>
-              <buildcommand>ch.epfl.lamp.sdt.core.scalabuilder</buildcommand>
-            </additionalBuildcommands>
+            <projectnatures>
+                <projectnature>ch.epfl.lamp.sdt.core.scalanature</projectnature>
+                <projectnature>org.eclipse.jdt.core.javanature</projectnature>
+	        </projectnatures>
+	        <buildcommands>
+                <buildcommand>ch.epfl.lamp.sdt.core.scalabuilder</buildcommand>
+	        </buildcommands>
             <classpathContainers>
               <classpathContainer>ch.epfl.lamp.sdt.launching.SCALA_CONTAINER</classpathContainer>
               <classpathContainer>org.eclipse.jdt.launching.JRE_CONTAINER</classpathContainer>
             </classpathContainers>
+            <excludes>
+                <exclude>org.scala-lang:scala-library</exclude>
+                <exclude>org.scala-lang:scala-compiler</exclude>
+            </excludes>
+            <sourceIncludes>
+                <sourceInclude>**/*.scala</sourceInclude>
+                <sourceInclude>**/*.java</sourceInclude>
+            </sourceIncludes>
           </configuration>
         </plugin>
         <plugin>
