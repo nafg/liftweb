@@ -173,7 +173,7 @@ index 494d9a4..f996e5a 100644
    <name>JPA Demo Master</name>
    <inceptionYear>2007</inceptionYear>
 diff --git examples/example/pom.xml examples/example/pom.xml
-index 7f0756a..7366e25 100644
+index 0784d57..9629505 100644
 --- examples/example/pom.xml
 +++ examples/example/pom.xml
 @@ -4,11 +4,11 @@
@@ -405,7 +405,7 @@ index d75a59a..8338021 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-base/lift-json-ext/pom.xml framework/lift-base/lift-json-ext/pom.xml
-index a8f7ca9..2e24db4 100644
+index 397447a..f9d1dce 100644
 --- framework/lift-base/lift-json-ext/pom.xml
 +++ framework/lift-base/lift-json-ext/pom.xml
 @@ -27,10 +27,10 @@
@@ -762,7 +762,7 @@ index 0552cb1..9208657 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-modules/lift-wizard/pom.xml framework/lift-modules/lift-wizard/pom.xml
-index 0d44fac..07d784e 100644
+index bd2a3e1..a8b0d9d 100644
 --- framework/lift-modules/lift-wizard/pom.xml
 +++ framework/lift-modules/lift-wizard/pom.xml
 @@ -27,10 +27,10 @@
@@ -829,6 +829,23 @@ index 56a28be..9799d44 100644
  
    <!--
      ~ More Project Information
+diff --git framework/lift-persistence/lift-db/pom.xml framework/lift-persistence/lift-db/pom.xml
+index 3a700dc..534d8a4 100644
+--- framework/lift-persistence/lift-db/pom.xml
++++ framework/lift-persistence/lift-db/pom.xml
+@@ -27,10 +27,10 @@
+   -->
+   <parent>
+     <groupId>net.liftweb</groupId>
+-    <artifactId>lift-persistence_2.8.1</artifactId>
++    <artifactId>lift-persistence_2.8.0</artifactId>
+     <version>2.3-SNAPSHOT</version>
+   </parent>
+-  <artifactId>lift-db_2.8.1</artifactId>
++  <artifactId>lift-db_2.8.0</artifactId>
+ 
+   <!--
+     ~ More Project Information
 diff --git framework/lift-persistence/lift-jpa/pom.xml framework/lift-persistence/lift-jpa/pom.xml
 index bc85471..e827e43 100644
 --- framework/lift-persistence/lift-jpa/pom.xml
@@ -847,7 +864,7 @@ index bc85471..e827e43 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-persistence/lift-mapper/pom.xml framework/lift-persistence/lift-mapper/pom.xml
-index 804a236..a7ee435 100644
+index 4adce86..fc9a27b 100644
 --- framework/lift-persistence/lift-mapper/pom.xml
 +++ framework/lift-persistence/lift-mapper/pom.xml
 @@ -27,10 +27,10 @@
@@ -881,7 +898,7 @@ index 0a4106b..b08aa5e 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-persistence/lift-mongodb/pom.xml framework/lift-persistence/lift-mongodb/pom.xml
-index 0d99427..362788c 100644
+index 03f3cee..9410422 100644
 --- framework/lift-persistence/lift-mongodb/pom.xml
 +++ framework/lift-persistence/lift-mongodb/pom.xml
 @@ -27,10 +27,10 @@
@@ -932,7 +949,7 @@ index 84a4b0b..7ab9bc3 100644
    <!--
      ~ More Project Information
 diff --git framework/lift-persistence/lift-squeryl-record/pom.xml framework/lift-persistence/lift-squeryl-record/pom.xml
-index 56bdd4f..8320d83 100644
+index 2ebcf30..2183990 100644
 --- framework/lift-persistence/lift-squeryl-record/pom.xml
 +++ framework/lift-persistence/lift-squeryl-record/pom.xml
 @@ -27,10 +27,10 @@
@@ -948,25 +965,8 @@ index 56bdd4f..8320d83 100644
  
    <!--
      ~ More Project Information
-@@ -62,7 +62,7 @@
-       <groupId>cglib</groupId>
-       <artifactId>cglib-nodep</artifactId>
-     </dependency>
--    
-+
-     <!-- Test dependencies: -->
-     <dependency>
-       <groupId>org.scala-tools.testing</groupId>
-@@ -84,6 +84,6 @@
-       <artifactId>h2</artifactId>
-       <scope>test</scope>
-     </dependency>
--    
-+
-   </dependencies>
- </project>
 diff --git framework/lift-persistence/pom.xml framework/lift-persistence/pom.xml
-index 2300075..25d1c41 100644
+index 800a3da..c5b2495 100644
 --- framework/lift-persistence/pom.xml
 +++ framework/lift-persistence/pom.xml
 @@ -31,10 +31,10 @@
@@ -983,7 +983,7 @@ index 2300075..25d1c41 100644
  
    <!--
 diff --git framework/pom.xml framework/pom.xml
-index bdcf828..98e1e52 100644
+index 441ec49..301cfcc 100644
 --- framework/pom.xml
 +++ framework/pom.xml
 @@ -35,11 +35,11 @@
@@ -1014,7 +1014,7 @@ index d4d49fa..eaf7645 100644
      <relativePath>resources/lift-parent/pom.xml</relativePath>
    </parent>
 diff --git resources/lift-parent/pom.xml resources/lift-parent/pom.xml
-index 929909d..fc17a92 100644
+index ff6bcf1..4d92003 100644
 --- resources/lift-parent/pom.xml
 +++ resources/lift-parent/pom.xml
 @@ -37,7 +37,7 @@
