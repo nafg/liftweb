@@ -35,8 +35,11 @@ trait PaginatedModelSnippet[T <: Mapper[T]] extends ModelSnippet[T] {
   abstract override def dispatch: DispatchIt = super.dispatch orElse Map("paginate" -> paginator.paginate _ )
   /**
    * The paginator to delegate to
+   * Since ModelSnippet extends StatefulSnippet, if you implement paginator
+   * as a val it will be reused across requests and you will have to either
+   * implement count and page as defs not vals, or mix in CachingPaginator.
    */
-  val paginator: PaginatorSnippet[T]
+  def paginator: PaginatorSnippet[T]
 }
 
 /** 
@@ -44,9 +47,10 @@ trait PaginatedModelSnippet[T <: Mapper[T]] extends ModelSnippet[T] {
  * wish to paginate and Paginator will run your query for you etc.
  *
  * @param meta The singleton of the Mapper class you're paginating
- * @author nafg and Timothy Perrett
+ * @author nafg
  */
-class MapperPaginator[T <: Mapper[T]](val meta: MetaMapper[T]) extends Paginator[T] {
+trait MapperPaginator[T <: Mapper[T]] extends Paginator[T] {
+  val meta: MetaMapper[T]
   /**
    * QueryParams to use always
    */
@@ -57,11 +61,19 @@ class MapperPaginator[T <: Mapper[T]](val meta: MetaMapper[T]) extends Paginator
 }
 
 /**
+ * Mix this in to any Mapper Paginator that is not reused across requests to reduce database hits
+*/
+trait ImmutableMapperPaginator[T <: Mapper[T]] extends MapperPaginator[T] {
+  override lazy val count = super.count
+  override lazy val page = super.page
+}
+
+/**
  * Convenience class that combines MapperPaginator with PaginatorSnippet
  * @param meta The singleton of the Mapper class you're paginating
  */
-class MapperPaginatorSnippet[T <: Mapper[T]](meta: MetaMapper[T])
-  extends MapperPaginator[T](meta) with PaginatorSnippet[T]
+class MapperPaginatorSnippet[T <: Mapper[T]](val meta: MetaMapper[T])
+  extends MapperPaginator[T] with PaginatorSnippet[T]
 
 /**
  * Implements MapperPaginator and SortedPaginator.
@@ -69,10 +81,10 @@ class MapperPaginatorSnippet[T <: Mapper[T]](meta: MetaMapper[T])
  * @param initialSort The field to sort by initially
  * @param _headers Pairs of column labels and MappedFields.
  */
-class SortedMapperPaginator[T <: Mapper[T]](meta: MetaMapper[T],
+class SortedMapperPaginator[T <: Mapper[T]](val meta: MetaMapper[T],
                                 initialSort: net.liftweb.mapper.MappedField[_, T],
                                 _headers: (String, MappedField[_, T])*)
-    extends MapperPaginator[T](meta) with SortedPaginator[T, MappedField[_, T]] {
+    extends MapperPaginator[T] with SortedPaginator[T, MappedField[_, T]] {
     
     val headers = _headers.toList
     sort = (headers.findIndexOf{case (_,`initialSort`)=>true; case _ => false}, true)
@@ -103,3 +115,4 @@ class SortedMapperPaginatorSnippet[T <: Mapper[T]](
 }
 }
 }
+

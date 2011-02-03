@@ -27,31 +27,46 @@ import S.{?,??}
  * for supplying the correct number of browsable pages etc
  *
  * @tparam T the type of item being paginated
- * @author nafg and Timothy Perrett
+ * @author nafg
  */
 trait Paginator[T] extends Loggable {
   /**
    * The total number of items
+   * In most cases you want to implement this as a val to prevent
+   * unnecessary database hits; unless you are using
+   * it in a StatefulSnippet etc., in which case you can
+   * mix in CachingPaginator to have count backed by a RequestVar.
    */
   def count: Long
+  
   /**
    * How many items to put on each page
    */
   def itemsPerPage = 20
+  
   /**
    * The record number this page starts at. Zero-based.
    */
   def first = 0L
+  
   /**
    * The items displayed on the current page
+   * In most cases you want to implement this as a val to prevent
+   * unnecessary database hits; unless you are using
+   * it in a StatefulSnippet etc., in which case you can
+   * mix in CachingPaginator to have page backed by a RequestVar.
+   * Note that page is not actually used by the paginators --
+   * it is up to the programmer to actually display the items.
    */
   def page: Seq[T]
+  
   /**
    * Calculates the number of pages the items will be spread across
    */
-  def numPages =
-    (count/itemsPerPage).toInt +
-  (if(count % itemsPerPage > 0) 1 else 0)
+  def numPages = {
+    val c = count
+    (c/itemsPerPage).toInt + (if(c % itemsPerPage > 0) 1 else 0)
+  }
   /**
    * Calculates the current page number, based on the value of 'first.'
    */
@@ -161,13 +176,15 @@ trait PaginatorSnippet[T] extends Paginator[T] {
   /**
    * The status displayed when using &lt;nav:records/&gt; in the template.
    */
-  def currentXml: NodeSeq = 
-    if(count==0)
+  def currentXml: NodeSeq = {
+    val c = count
+    if(c==0)
       Text(??("paginator.norecords"))
     else
       Text(??("paginator.displayingrecords", 
-              Array(recordsFrom, recordsTo, count).map(_.asInstanceOf[AnyRef]) : _*))
-
+              Array(recordsFrom, recordsTo, c).map(_.asInstanceOf[AnyRef]) : _*))
+  }
+  
   /**
    * The template prefix for general navigation components
    */
@@ -287,12 +304,30 @@ trait SortedPaginatorSnippet[T, C] extends SortedPaginator[T, C] with PaginatorS
 }
 
 /**
+ * Mix this in to a Paginator to back its state with a RequestVar
+ * so the database will only be hit once per request. 
+ * Instead of implementing page and count, implement calcPage and calcCount
+ * @author nafg
+ */
+trait CachingPaginator[T] {
+  def calcPage: Seq[T]
+  def calcCount: Int
+  object cachedPage extends RequestVar(calcPage)
+  object cachedCount extends RequestVar(calcCount)
+  final def page = cachedPage.is
+  final def count = cachedCount.is
+}
+
+/**
  * Sort your paginated views by using lifts functions mapping. 
  * The only down side with this style is that your links are session 
  * specific and non-bookmarkable.
  * If you mix this trait in to a StatefulSnippet, it should work out the box.
  * Otherwise, implement 'registerThisSnippet.'
- * @author nafg and Timothy Perrett
+ * Since the snippet is reused across requests, you must use defs for page
+ * and count, not vals. Therefore, to improve performance it is recommended
+ * to mix in CachingPaginator.
+ * @author nafg
  */
 trait StatefulSortedPaginatorSnippet[T, C] extends SortedPaginatorSnippet[T, C] {
   /**
@@ -307,6 +342,6 @@ trait StatefulSortedPaginatorSnippet[T, C] extends SortedPaginatorSnippet[T, C] 
   override def sortedPageUrl(offset: Long, sort: (Int, Boolean)) =
     S.fmapFunc(S.NFuncHolder(() => registerThisSnippet)){ name =>
       appendParams(super.sortedPageUrl(offset,sort), List(name -> "_"))
-                                                       }
+  }
 }
 
